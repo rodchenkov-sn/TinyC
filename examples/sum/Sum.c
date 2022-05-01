@@ -1,7 +1,6 @@
-int sum(bar a, int b)
+int sum(int a, int b)
 {
-    int s = a + b;
-    return s;
+    return a + b;
 }
 
 int main()

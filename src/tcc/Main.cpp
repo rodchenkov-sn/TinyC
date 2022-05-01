@@ -6,6 +6,7 @@
 #include "ast/AstVisitor.h"
 #include "asg/AsgNode.h"
 #include "symbols/SymbolResolver.h"
+#include "ir/IrEmitter.h"
 
 
 int main()
@@ -35,6 +36,10 @@ int main()
         return 1;
     }
 
+    IrEmitter emitter;
+    auto module = emitter.emmit(root, "Bruh");
+
+    module->print(llvm::errs(), nullptr);
 
     return 0;
 }
