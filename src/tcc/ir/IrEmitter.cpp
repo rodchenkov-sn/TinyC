@@ -83,7 +83,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     node->body->accept(this);
 
-    llvm::verifyFunction(*function);
+    assert(!llvm::verifyFunction(*function, &llvm::errs()));
 
     local_variables_.pop();
 
