@@ -1,7 +1,10 @@
 #include "IrEmitter.h"
 
-#include "symbols/FunctionLib.h"
-#include "symbols/TypeLib.h"
+#include <llvm/Transforms/Utils.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
 
 
 std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view moduleName)
@@ -92,7 +95,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
 std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
-    auto* varType = TypeLibrary::inst().get(node->type);
+    auto* varType = node->parent->localVariables[node->name];
 
     llvm::AllocaInst* alloca = builder_->CreateAlloca(varType->irTypeGetter(*context_), nullptr, node->name);
 
