@@ -70,6 +70,19 @@ struct AsgAssignment : AsgNode {
 };
 
 
+struct AsgComp : AsgNode {
+    enum class Operator {
+        Equals, NotEquals, Less, LessEquals, Greater, GreaterEquals
+    };
+
+    std::any accept(AsgVisitorBase *visitor) override { return visitor->visitComp(this); }
+
+    AsgNode* lhs;
+    AsgNode* rhs;
+    Operator op;
+};
+
+
 struct AsgAddSub : AsgNode {
     enum class Operator {
         Add, Sub

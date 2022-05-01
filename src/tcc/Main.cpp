@@ -12,7 +12,7 @@
 int main()
 {
     std::ifstream file;
-    file.open("../examples/sum/Sum.c");
+    file.open("../examples/math/Math.c");
 
     if (!file.is_open()) {
         std::cout << "could not open input";

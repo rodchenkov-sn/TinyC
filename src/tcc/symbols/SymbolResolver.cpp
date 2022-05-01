@@ -121,6 +121,18 @@ std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
 }
 
 
+std::any SymbolResolver::visitComp(struct AsgComp* node)
+{
+    node->function = current_function_;
+    node->parent = top_scope_;
+
+    node->rhs->accept(this);
+    node->lhs->accept(this);
+
+    return {};
+}
+
+
 std::any SymbolResolver::visitAddSub(struct AsgAddSub* node)
 {
     node->function = current_function_;

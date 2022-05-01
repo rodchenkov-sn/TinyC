@@ -17,7 +17,7 @@
 
 class IrEmitter : private AsgVisitorBase {
 public:
-    std::unique_ptr<llvm::Module> emmit(AsgNode* root, std::string_view moduleName);
+    std::unique_ptr<llvm::Module> emmit(AsgNode* root, std::string_view moduleName, bool optimize = true);
 
 private:
     std::any visitStatementList(struct AsgStatementList* node) override;
@@ -25,6 +25,8 @@ private:
     std::any visitVariableDefinition(struct AsgVariableDefinition* node) override;
     std::any visitReturn(struct AsgReturn* node) override;
     std::any visitAssignment(struct AsgAssignment* node) override;
+
+    std::any visitComp(struct AsgComp *node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
     std::any visitMulDiv(struct AsgMulDiv* node) override;
     std::any visitVariable(struct AsgVariable* node) override;

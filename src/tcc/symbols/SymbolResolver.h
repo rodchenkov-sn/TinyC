@@ -26,6 +26,8 @@ private:
     std::any visitVariableDefinition(struct AsgVariableDefinition* node) override;
     std::any visitReturn(struct AsgReturn* node) override;
     std::any visitAssignment(struct AsgAssignment* node) override;
+
+    std::any visitComp(struct AsgComp *node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
     std::any visitMulDiv(struct AsgMulDiv* node) override;
     std::any visitVariable(struct AsgVariable* node) override;

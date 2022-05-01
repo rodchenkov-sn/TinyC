@@ -115,6 +115,39 @@ std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *c
 }
 
 
+std::any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx)
+{
+    if (ctx->addSubExpr().size() == 1) {
+        return visitAddSubExpr(ctx->addSubExpr(0));
+    }
+
+    auto* lhs = std::any_cast<AsgNode*>(visitAddSubExpr(ctx->addSubExpr(0)));
+    auto* rhs = std::any_cast<AsgNode*>(visitAddSubExpr(ctx->addSubExpr(1)));
+    AsgComp::Operator op;
+    if (ctx->EQUALEQUAL()) {
+        op = AsgComp::Operator::Equals;
+    } else if (ctx->NOTEQUAL()) {
+        op = AsgComp::Operator::NotEquals;
+    } else if (ctx->LESS()) {
+        op = AsgComp::Operator::Less;
+    } else if (ctx->LESSEQUAL()) {
+        op = AsgComp::Operator::LessEquals;
+    } else if (ctx->GREATER()) {
+        op = AsgComp::Operator::Greater;
+    } else {
+        op = AsgComp::Operator::GreaterEquals;
+    }
+
+    auto node = std::make_unique<AsgComp>();
+
+    node->lhs = lhs;
+    node->rhs = rhs;
+    node->op = op;
+
+    return (AsgNode*)node.release();
+}
+
+
 std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext *ctx)
 {
     if (ctx->mulDivExpr().size() == 1) {

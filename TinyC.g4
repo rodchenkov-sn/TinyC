@@ -41,7 +41,21 @@ returnStatement
     ;
 
 expression
+    :   compExpression
+    ;
+
+compExpression
     :   addSubExpr
+        (
+            (   EQUALEQUAL
+            |   NOTEQUAL
+            |   LESS
+            |   LESSEQUAL
+            |   GREATER
+            |   GREATEREQUAL
+            )
+            addSubExpr
+        )?
     ;
 
 addSubExpr
@@ -126,6 +140,13 @@ EQUAL     : '=';
 PLUS      : '+';
 MINUS     : '-';
 SLASH     : '/';
+
+EQUALEQUAL   : '==';
+NOTEQUAL     : '!=';
+LESS         : '<';
+LESSEQUAL    : '<=';
+GREATER      : '>';
+GREATEREQUAL : '>=';
 
 
 WHITESPACE

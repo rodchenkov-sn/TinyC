@@ -7,7 +7,7 @@
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 
 
-std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view moduleName)
+std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view moduleName, bool optimize)
 {
     context_ = std::make_unique<llvm::LLVMContext>();
     module_ = std::make_unique<llvm::Module>(moduleName, *context_);
@@ -15,11 +15,13 @@ std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view m
 
     fpm_ = std::make_unique<llvm::legacy::FunctionPassManager>(module_.get());
 
-    fpm_->add(llvm::createPromoteMemoryToRegisterPass());
-    fpm_->add(llvm::createInstructionCombiningPass());
-    fpm_->add(llvm::createReassociatePass());
-    fpm_->add(llvm::createGVNPass());
-    fpm_->add(llvm::createCFGSimplificationPass());
+    if (optimize) {
+        fpm_->add(llvm::createPromoteMemoryToRegisterPass());
+        fpm_->add(llvm::createInstructionCombiningPass());
+        fpm_->add(llvm::createReassociatePass());
+        fpm_->add(llvm::createGVNPass());
+        fpm_->add(llvm::createCFGSimplificationPass());
+    }
 
     fpm_->doInitialization();
 
@@ -136,6 +138,38 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
     builder_->CreateStore(value, alloca);
 
     return {};
+}
+
+
+std::any IrEmitter::visitComp(struct AsgComp* node)
+{
+    auto* lhs = std::any_cast<llvm::Value*>(node->lhs->accept(this));
+    auto* rhs = std::any_cast<llvm::Value*>(node->rhs->accept(this));
+
+    llvm::Value* i1Val = nullptr;
+
+    switch (node->op) {
+        case AsgComp::Operator::Equals:
+            i1Val = builder_->CreateICmpEQ(lhs, rhs);
+            break;
+        case AsgComp::Operator::NotEquals:
+            i1Val = builder_->CreateICmpNE(lhs, rhs);
+            break;
+        case AsgComp::Operator::Less:
+            i1Val = builder_->CreateICmpSLT(lhs, rhs);
+            break;
+        case AsgComp::Operator::LessEquals:
+            i1Val = builder_->CreateICmpSLE(lhs, rhs);
+            break;
+        case AsgComp::Operator::Greater:
+            i1Val = builder_->CreateICmpSGT(lhs, rhs);
+            break;
+        case AsgComp::Operator::GreaterEquals:
+            i1Val = builder_->CreateICmpSGE(lhs, rhs);
+            break;
+    }
+
+    return builder_->CreateIntCast(i1Val, llvm::Type::getInt32Ty(*context_), false);
 }
 
 
