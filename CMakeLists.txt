@@ -4,11 +4,21 @@ project(TinyC)
 
 set(CMAKE_CXX_STANDARD 17)
 
-file(GLOB_RECURSE tcc_sources RELATIVE ${PROJECT_SOURCE_DIR} "src/tcc/*.cpp")
-file(GLOB_RECURSE grammar_generated_sources RELATIVE ${PROJECT_SOURCE_DIR} "generated/*.cpp")
+find_package(antlr4-generator REQUIRED)
 
+set(ANTLR4_JAR_LOCATION "${PROJECT_SOURCE_DIR}/vendor/antlr4/antlr-4.10.1-complete.jar")
+antlr4_generate(
+        antlr_generated_sources
+        ${PROJECT_SOURCE_DIR}/TinyC.g4
+        BOTH
+        FALSE
+        TRUE
+)
+
+include_directories(${ANTLR4_INCLUDE_DIR_antlr_generated_sources})
+
+file(GLOB_RECURSE tcc_sources RELATIVE ${PROJECT_SOURCE_DIR} "src/tcc/*.cpp")
 include_directories("${PROJECT_SOURCE_DIR}/src/tcc")
-include_directories("${PROJECT_SOURCE_DIR}/generated")
 
 find_package(antlr4-runtime REQUIRED)
 include_directories(${ANTLR4_INCLUDE_DIR})
@@ -29,6 +39,10 @@ llvm_map_components_to_libnames(llvm_libs
         native
         )
 
-add_executable(tcc ${tcc_sources} ${grammar_generated_sources})
+add_executable(tcc
+        ${tcc_sources}
+        ${grammar_generated_sources}
+        ${ANTLR4_SRC_FILES_antlr_generated_sources}
+        )
 
 target_link_libraries(tcc antlr4_static ${llvm_libs})
