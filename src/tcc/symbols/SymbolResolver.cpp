@@ -15,10 +15,13 @@ bool SymbolResolver::resolve(AsgNode* root)
 
 std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
 {
+    if (!code_blocks_.empty()) {
+        node->parent = code_blocks_.top();
+    }
+
     code_blocks_.push(node);
 
     node->function = current_function_;
-    node->parent = code_blocks_.top();
 
     for (auto& n : node->statements) {
         n->accept(this);
