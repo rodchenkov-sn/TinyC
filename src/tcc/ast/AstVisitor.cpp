@@ -44,6 +44,13 @@ std::any AstVisitor::visitStatements(TinyCParser::StatementsContext* ctx)
     auto node = std::make_unique<AsgStatementList>();
 
     for (auto* statement : ctx->statement()) {
+
+        auto stmtNode = visit(statement);
+
+        if (stmtNode.type() == typeid(AsgReturn*)) {
+            node->statements.emplace_back(std::any_cast<AsgReturn*>(stmtNode));
+            break;
+        }
         auto* s = std::any_cast<AsgNode*>(visit(statement));
         node->statements.emplace_back(s);
     }
@@ -101,7 +108,7 @@ std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *c
     auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
     node->value.reset(e);
 
-    return (AsgNode*)node.release();
+    return node.release();
 }
 
 
