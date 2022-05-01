@@ -70,7 +70,10 @@ std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
     if (ctx->returnStatement()) {
         return visitReturnStatement(ctx->returnStatement());
     }
-    return visitVariableDecl(ctx->variableDecl());
+    if (ctx->variableDecl()) {
+        return visitVariableDecl(ctx->variableDecl());
+    }
+    return visitStatements(ctx->statements());
 }
 
 

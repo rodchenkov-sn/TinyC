@@ -4,7 +4,7 @@
 
 #include <vector>
 #include <sstream>
-#include <stack>
+#include <deque>
 #include <unordered_map>
 
 #include <llvm/IR/Module.h>
@@ -31,12 +31,14 @@ private:
     std::any visitCall(struct AsgCall* node) override;
     std::any visitIntLiteral(struct AsgIntLiteral* node) override;
 
+    llvm::AllocaInst* findAlloca(const std::string& name) const;
+
     std::unique_ptr<llvm::LLVMContext> context_;
     std::unique_ptr<llvm::Module> module_;
     std::unique_ptr<llvm::IRBuilder<>> builder_;
     std::unique_ptr<llvm::legacy::FunctionPassManager> fpm_;
 
-    std::stack<std::unordered_map<std::string, llvm::AllocaInst*>> local_variables_;
+    std::deque<std::unordered_map<std::string, llvm::AllocaInst*>> scopes_;
 };
 
 

@@ -5,7 +5,7 @@ translationUnit
     ;
 
 function
-    :   type functionName L_PARAN parameters? R_PARAN L_BRACE statements? R_BRACE
+    :   type functionName L_PARAN parameters? R_PARAN statements
     ;
 
 type
@@ -17,7 +17,7 @@ parameters
     ;
 
 statements
-    :   statement+
+    :   L_BRACE statement* R_BRACE
     ;
 
 statement
@@ -25,10 +25,11 @@ statement
     |   variableDecl SEMICOLON
     |   assignment SEMICOLON
     |   expression SEMICOLON
+    |   statements
     ;
 
 variableDecl
-    :   type variableName ( EQUAL expression )
+    :   type variableName ( EQUAL expression )?
     ;
 
 assignment

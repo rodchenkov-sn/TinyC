@@ -15,11 +15,8 @@ bool SymbolResolver::resolve(AsgNode* root)
 
 std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
 {
-    if (!code_blocks_.empty()) {
-        node->parent = code_blocks_.top();
-    }
-
-    code_blocks_.push(node);
+    node->parent = top_scope_;
+    top_scope_ = node;
 
     node->function = current_function_;
 
@@ -27,7 +24,7 @@ std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
         n->accept(this);
     }
 
-    code_blocks_.pop();
+    top_scope_ = node->parent;
 
     return {};
 }
@@ -77,9 +74,9 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
 std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
-    if (code_blocks_.top()->localVariables.find(node->name) != code_blocks_.top()->localVariables.end()) {
+    if (findVarType(node->name)) {
         errors_.emplace_back() << "variable " << node->name << " was redefined";
     }
 
@@ -88,7 +85,7 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
         errors_.emplace_back() << "undefined type " << node->type << " in variable " << node->name << " definition";
     }
 
-    code_blocks_.top()->localVariables.insert({ node->name, type });
+    top_scope_->localVariables.insert({ node->name, type });
 
     if (node->value) {
         node->value->accept(this);
@@ -101,7 +98,7 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
 std::any SymbolResolver::visitReturn(struct AsgReturn* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
     node->value->accept(this);
 
@@ -112,9 +109,9 @@ std::any SymbolResolver::visitReturn(struct AsgReturn* node)
 std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
-    if (code_blocks_.top()->localVariables.find(node->name) == code_blocks_.top()->localVariables.end()) {
+    if (!findVarType(node->name)) {
         errors_.emplace_back() << "variable " << node->name << " is undefined";
     }
 
@@ -127,7 +124,7 @@ std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
 std::any SymbolResolver::visitAddSub(struct AsgAddSub* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
     for (auto& subexpression : node->subexpressions) {
         subexpression.expression->accept(this);
@@ -140,7 +137,7 @@ std::any SymbolResolver::visitAddSub(struct AsgAddSub* node)
 std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
     for (auto& subexpression : node->subexpressions) {
         subexpression.expression->accept(this);
@@ -153,9 +150,9 @@ std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
 std::any SymbolResolver::visitVariable(struct AsgVariable* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
-    if (code_blocks_.top()->localVariables.find(node->name) == code_blocks_.top()->localVariables.end()) {
+    if (!findVarType(node->name)) {
         errors_.emplace_back() << "variable " << node->name << " is undefined";
     }
 
@@ -166,7 +163,7 @@ std::any SymbolResolver::visitVariable(struct AsgVariable* node)
 std::any SymbolResolver::visitCall(struct AsgCall* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
     if (!FunctionLibrary::inst().get(node->functionName)) {
         errors_.emplace_back() << "function " << node->functionName << " is undefined";
@@ -183,7 +180,20 @@ std::any SymbolResolver::visitCall(struct AsgCall* node)
 std::any SymbolResolver::visitIntLiteral(struct AsgIntLiteral* node)
 {
     node->function = current_function_;
-    node->parent = code_blocks_.top();
+    node->parent = top_scope_;
 
     return {};
+}
+
+
+TypeId SymbolResolver::findVarType(const std::string& name) const
+{
+    auto* currScope = top_scope_;
+    while (currScope) {
+        if (currScope->localVariables.find(name) != currScope->localVariables.end()) {
+            return currScope->localVariables.at(name);
+        }
+        currScope = currScope->parent;
+    }
+    return nullptr;
 }

@@ -34,8 +34,16 @@ std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view m
 
 std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 {
+    if (node->parent) {
+        scopes_.emplace_back();
+    }
+
     for (auto& statement : node->statements) {
         statement->accept(this);
+    }
+
+    if (node->parent) {
+        scopes_.pop_back();
     }
 
     return {};
@@ -44,7 +52,7 @@ std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 
 std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 {
-    local_variables_.emplace();
+    scopes_.emplace_back();
 
     std::vector<llvm::Type*> paramTypes;
     for (auto& paramType : node->type->parameters) {
@@ -77,7 +85,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
             llvm::AllocaInst* alloca = builder_->CreateAlloca(param.getType(), nullptr, paramName);
             builder_->CreateStore(&param, alloca);
 
-            local_variables_.top().insert({ paramName, alloca });
+            scopes_.back().insert({ paramName, alloca });
         }
     }
 
@@ -85,7 +93,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     assert(!llvm::verifyFunction(*function, &llvm::errs()));
 
-    local_variables_.pop();
+    scopes_.pop_back();
 
     fpm_->run(*function);
 
@@ -99,7 +107,7 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 
     llvm::AllocaInst* alloca = builder_->CreateAlloca(varType->irTypeGetter(*context_), nullptr, node->name);
 
-    local_variables_.top().insert({ node->name, alloca });
+    scopes_.back().insert({ node->name, alloca });
 
     if (node->value) {
         auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
@@ -122,7 +130,7 @@ std::any IrEmitter::visitReturn(struct AsgReturn* node)
 
 std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
 {
-    auto* alloca = local_variables_.top()[node->name];
+    auto* alloca = findAlloca(node->name);
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
 
     builder_->CreateStore(value, alloca);
@@ -165,7 +173,7 @@ std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
 
 std::any IrEmitter::visitVariable(struct AsgVariable* node)
 {
-    auto* alloca = local_variables_.top()[node->name];
+    auto* alloca = findAlloca(node->name);
     return (llvm::Value*)builder_->CreateLoad(alloca);
 }
 
@@ -186,4 +194,14 @@ std::any IrEmitter::visitCall(struct AsgCall* node)
 std::any IrEmitter::visitIntLiteral(struct AsgIntLiteral* node)
 {
     return (llvm::Value*)llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), node->value);
+}
+
+llvm::AllocaInst* IrEmitter::findAlloca(const std::string& name) const
+{
+    for (auto scope = scopes_.rbegin(); scope != scopes_.rend(); scope++) {
+        if (scope->find(name) != scope->end()) {
+            return scope->at(name);
+        }
+    }
+    return nullptr;
 }

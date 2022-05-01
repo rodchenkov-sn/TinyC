@@ -32,10 +32,11 @@ private:
     std::any visitCall(struct AsgCall* node) override;
     std::any visitIntLiteral(struct AsgIntLiteral* node) override;
 
-    // std::stack<std::unordered_map<std::string, const Type*>> local_variables_;
+    TypeId findVarType(const std::string& name) const;
+
     std::vector<std::stringstream> errors_;
 
-    std::stack<AsgStatementList*> code_blocks_;
+    AsgStatementList* top_scope_ = nullptr;
     AsgFunctionDefinition* current_function_ = nullptr;
 };
 
