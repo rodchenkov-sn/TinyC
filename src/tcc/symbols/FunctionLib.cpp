@@ -13,7 +13,7 @@ FunctionLibrary& FunctionLibrary::inst()
 }
 
 
-const Function* FunctionLibrary::get(const std::string& name) const
+FunctionId FunctionLibrary::get(const std::string& name) const
 {
     if (named_functions_.find(name) != named_functions_.end()) {
         return &named_functions_.at(name);
@@ -22,11 +22,11 @@ const Function* FunctionLibrary::get(const std::string& name) const
 }
 
 
-bool FunctionLibrary::add(const Function& function)
+FunctionId FunctionLibrary::add(const Function& function)
 {
     if (named_functions_.find(function.name) != named_functions_.end()) {
-        return false;
+        return nullptr;
     }
     named_functions_.insert({ function.name, function });
-    return true;
+    return get(function.name);
 }

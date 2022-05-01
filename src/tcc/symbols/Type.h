@@ -12,4 +12,7 @@ struct Type {
 };
 
 
+using TypeId = const Type*;
+
+
 #endif // TINYC_TCTYPE_H

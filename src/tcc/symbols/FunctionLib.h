@@ -13,8 +13,8 @@ class FunctionLibrary {
 public:
     static FunctionLibrary& inst();
 
-    const Function* get(const std::string& name) const;
-    bool add(const Function& function);
+    FunctionId get(const std::string& name) const;
+    FunctionId add(const Function& function);
 
 private:
     FunctionLibrary() = default;

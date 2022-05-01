@@ -15,4 +15,7 @@ struct Function {
 };
 
 
+using FunctionId = const Function*;
+
+
 #endif //TINYC_FUNCTION_H

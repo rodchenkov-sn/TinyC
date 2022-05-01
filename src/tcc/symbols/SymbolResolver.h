@@ -7,6 +7,7 @@
 #include <stack>
 #include <vector>
 #include <sstream>
+#include <any>
 
 #include "asg/AsgVisitor.h"
 #include "asg/AsgNode.h"
@@ -20,19 +21,22 @@ public:
     const std::vector<std::stringstream>& getErrors() const { return errors_; }
 
 private:
-    void visitStatementList(struct AsgStatementList* node) override;
-    void visitFunctionDefinition(struct AsgFunctionDefinition* node) override;
-    void visitVariableDefinition(struct AsgVariableDefinition* node) override;
-    void visitReturn(struct AsgReturn* node) override;
-    void visitAssignment(struct AsgAssignment* node) override;
-    void visitAddSub(struct AsgAddSub* node) override;
-    void visitMulDiv(struct AsgMulDiv* node) override;
-    void visitVariable(struct AsgVariable* node) override;
-    void visitCall(struct AsgCall* node) override;
-    void visitIntLiteral(struct AsgIntLiteral* node) override;
+    std::any visitStatementList(struct AsgStatementList* node) override;
+    std::any visitFunctionDefinition(struct AsgFunctionDefinition* node) override;
+    std::any visitVariableDefinition(struct AsgVariableDefinition* node) override;
+    std::any visitReturn(struct AsgReturn* node) override;
+    std::any visitAssignment(struct AsgAssignment* node) override;
+    std::any visitAddSub(struct AsgAddSub* node) override;
+    std::any visitMulDiv(struct AsgMulDiv* node) override;
+    std::any visitVariable(struct AsgVariable* node) override;
+    std::any visitCall(struct AsgCall* node) override;
+    std::any visitIntLiteral(struct AsgIntLiteral* node) override;
 
-    std::stack<std::unordered_map<std::string, const Type*>> local_variables_;
+    // std::stack<std::unordered_map<std::string, const Type*>> local_variables_;
     std::vector<std::stringstream> errors_;
+
+    std::stack<AsgStatementList*> code_blocks_;
+    AsgFunctionDefinition* current_function_ = nullptr;
 };
 
 

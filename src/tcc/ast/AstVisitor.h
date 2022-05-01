@@ -18,9 +18,6 @@ public:
     std::any visitCallExpr(TinyCParser::CallExprContext *ctx) override;
     std::any visitLiteral(TinyCParser::LiteralContext *ctx) override;
     std::any visitVariableName(TinyCParser::VariableNameContext *ctx) override;
-
-private:
-    int first_free_tmp_reg_ = 0;
 };
 
 
