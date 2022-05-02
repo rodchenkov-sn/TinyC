@@ -65,14 +65,8 @@ std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
     if (ctx->expression()) {
         return visitExpression(ctx->expression());
     }
-    if (ctx->assignment()) {
-        return visitAssignment(ctx->assignment());
-    }
     if (ctx->returnStatement()) {
         return visitReturnStatement(ctx->returnStatement());
-    }
-    if (ctx->variableDecl()) {
-        return visitVariableDecl(ctx->variableDecl());
     }
     if (ctx->ifStatement()) {
         return visitIfStatement(ctx->ifStatement());

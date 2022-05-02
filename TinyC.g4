@@ -22,8 +22,6 @@ statements
 
 statement
     :   returnStatement SEMICOLON
-    |   variableDecl SEMICOLON
-    |   assignment SEMICOLON
     |   expression SEMICOLON
     |   ifStatement
     |   statements
@@ -51,6 +49,8 @@ returnStatement
 
 expression
     :   compExpression
+    |   assignment
+    |   variableDecl
     ;
 
 compExpression

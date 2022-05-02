@@ -135,7 +135,7 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
         builder_->CreateStore(value, alloca);
     }
 
-    return {};
+    return (llvm::Value*)builder_->CreateLoad(varType->getLLVMType(*context_, curr_function_->getAddressSpace()), alloca);
 }
 
 
@@ -145,7 +145,7 @@ std::any IrEmitter::visitReturn(struct AsgReturn* node)
         builder_->CreateRetVoid();
         return {};
     }
-    
+
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
     auto retType = type_calculator_.calculate(node->value.get());
 
@@ -164,29 +164,24 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
     auto valType = type_calculator_.calculate(node->value.get());
     llvm::Value* ptr = nullptr;
+    Type::Id ptrType;
 
     if (node->name) {
         ptr = findAlloca(*node->name);
-
-        auto varType = findVarType(*node->name, node);
-
-        if (varType != valType) {
-            std::cerr << "invalid conversion in " << *node->name << " assignment\n";
-        }
+        ptrType = findVarType(*node->name, node);
     } else {
         ptr = std::any_cast<llvm::Value*>(node->assignable->accept(this));
+        ptrType = type_calculator_.calculate(node->assignable.get());
+    }
 
-        auto ptrType = type_calculator_.calculate(node->assignable.get());
-
-        if (ptrType->getDeref() != valType) {
-            std::cerr << "invalid conversion in assignment\n";
-        }
+    if (ptrType->getDeref() != valType) {
+        std::cerr << "invalid conversion in assignment\n";
     }
 
     ptr->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     builder_->CreateStore(value, ptr);
 
-    return {};
+    return (llvm::Value*)builder_->CreateLoad(ptrType->getLLVMType(*context_, curr_function_->getAddressSpace()), ptr);
 }
 
 
@@ -420,7 +415,7 @@ std::any IrEmitter::TypeCalculator::visitFunctionDefinition(struct AsgFunctionDe
 
 std::any IrEmitter::TypeCalculator::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
-    return Type::invalid();
+    return findVarType(node->name, node);
 }
 
 
@@ -432,7 +427,7 @@ std::any IrEmitter::TypeCalculator::visitReturn(struct AsgReturn* node)
 
 std::any IrEmitter::TypeCalculator::visitAssignment(struct AsgAssignment* node)
 {
-    return Type::invalid();
+    return node->name ? findVarType(*node->name, node) : node->assignable->accept(this);
 }
 
 
