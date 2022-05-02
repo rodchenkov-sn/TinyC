@@ -31,11 +31,13 @@ private:
     std::any visitComp(struct AsgComp *node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
     std::any visitMulDiv(struct AsgMulDiv* node) override;
+    std::any visitOpDeref(struct AsgOpDeref *node) override;
+    std::any visitOpRef(struct AsgOpRef *node) override;
     std::any visitVariable(struct AsgVariable* node) override;
     std::any visitCall(struct AsgCall* node) override;
     std::any visitIntLiteral(struct AsgIntLiteral* node) override;
 
-    TypeId findVarType(const std::string& name) const;
+    Type::Id findVarType(const std::string& name) const;
 
     std::vector<std::stringstream> errors_;
 

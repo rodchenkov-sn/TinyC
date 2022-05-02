@@ -6,6 +6,7 @@
 #include <memory>
 #include <iostream>
 #include <string>
+#include <optional>
 
 #include "AsgVisitor.h"
 #include "symbols/Function.h"
@@ -28,7 +29,7 @@ struct AsgStatementList : AsgNode {
     std::any accept(AsgVisitorBase *visitor) override { return visitor->visitStatementList(this); }
 
     std::vector<std::unique_ptr<AsgNode>> statements;
-    std::unordered_map<std::string, TypeId> localVariables;
+    std::unordered_map<std::string, Type::Id> localVariables;
 };
 
 
@@ -67,7 +68,8 @@ struct AsgReturn : AsgNode {
 struct AsgAssignment : AsgNode {
     std::any accept(AsgVisitorBase* visitor) override { return visitor->visitAssignment(this); }
 
-    std::string name;
+    std::unique_ptr<AsgNode> assignable;
+    std::optional<std::string> name;
     std::unique_ptr<AsgNode> value;
 };
 
@@ -125,6 +127,22 @@ struct AsgMulDiv : AsgNode {
     std::vector<Subexpression> subexpressions;
 };
 
+
+struct AsgOpDeref : AsgNode {
+    std::any accept(AsgVisitorBase* visitor) override { return visitor->visitOpDeref(this); }
+
+    size_t derefCount;
+    std::unique_ptr<AsgNode> expression;
+};
+
+
+struct AsgOpRef : AsgNode {
+    std::any accept(AsgVisitorBase* visitor) override { return visitor->visitOpRef(this); }
+
+    std::unique_ptr<AsgNode> value;
+};
+
+
 struct AsgVariable : AsgNode {
     std::any accept(AsgVisitorBase* visitor) override { return visitor->visitVariable(this); }
 
@@ -135,6 +153,7 @@ struct AsgCall : AsgNode {
     std::any accept(AsgVisitorBase* visitor) override { return visitor->visitCall(this); }
 
     std::string functionName;
+    FunctionId callee;
     std::vector<std::unique_ptr<AsgNode>> arguments;
 };
 

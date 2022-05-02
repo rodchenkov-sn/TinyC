@@ -11,12 +11,12 @@ class TypeLibrary {
 public:
     static TypeLibrary& inst();
 
-    const Type* get(const std::string& name) const;
+    Type::Id get(const std::string& name) const;
 
 private:
     TypeLibrary();
 
-    std::unordered_map<std::string, Type> named_types_;
+    std::unordered_map<std::string, Type::Id> named_types_;
 };
 
 #endif //TINYC_TCTYPELIB_H

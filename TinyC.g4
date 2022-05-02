@@ -9,7 +9,7 @@ function
     ;
 
 type
-    :   typeName
+    :   typeName ASTERISK*
     ;
 
 parameters
@@ -38,7 +38,11 @@ variableDecl
     ;
 
 assignment
-    :   variableName EQUAL expression
+    :   assignable EQUAL expression
+    ;
+
+assignable
+    :   ASTERISK* variableName
     ;
 
 returnStatement
@@ -68,7 +72,11 @@ addSubExpr
     ;
 
 mulDivExpr
-    :   operand ( ( ASTERISK | SLASH ) operand )*
+    :   operandDereference ( ( ASTERISK | SLASH ) operandDereference )*
+    ;
+
+operandDereference
+    :   ASTERISK* operand
     ;
 
 operand
@@ -78,8 +86,16 @@ operand
 
 valueExpr
     :   literal
-    |   variableName
+    |   valueReference
     |   callExpr
+    ;
+
+valueReference
+    :   AMPERSAND? referenceableValue
+    ;
+
+referenceableValue
+    :   variableName
     ;
 
 callExpr
@@ -147,6 +163,7 @@ EQUAL     : '=';
 PLUS      : '+';
 MINUS     : '-';
 SLASH     : '/';
+AMPERSAND : '&';
 
 EQUALEQUAL   : '==';
 NOTEQUAL     : '!=';

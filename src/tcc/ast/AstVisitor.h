@@ -14,11 +14,14 @@ public:
     std::any visitVariableDecl(TinyCParser::VariableDeclContext *ctx) override;
     std::any visitAssignment(TinyCParser::AssignmentContext *ctx) override;
     std::any visitReturnStatement(TinyCParser::ReturnStatementContext *ctx) override;
+
     std::any visitCompExpression(TinyCParser::CompExpressionContext *ctx) override;
     std::any visitAddSubExpr(TinyCParser::AddSubExprContext *ctx) override;
     std::any visitMulDivExpr(TinyCParser::MulDivExprContext *ctx) override;
+    std::any visitOperandDereference(TinyCParser::OperandDereferenceContext *ctx) override;
     std::any visitCallExpr(TinyCParser::CallExprContext *ctx) override;
     std::any visitLiteral(TinyCParser::LiteralContext *ctx) override;
+    std::any visitValueReference(TinyCParser::ValueReferenceContext *ctx) override;
     std::any visitVariableName(TinyCParser::VariableNameContext *ctx) override;
 };
 

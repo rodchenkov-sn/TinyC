@@ -6,6 +6,9 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/IR/Instructions.h>
+#include <llvm/IR/LLVMContext.h>
+
+#include "symbols/TypeLib.h"
 
 
 std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view moduleName, bool optimize)
@@ -59,11 +62,11 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     std::vector<llvm::Type*> paramTypes;
     for (auto& paramType : node->type->parameters) {
-        paramTypes.push_back(paramType->irTypeGetter(*context_));
+        paramTypes.push_back(paramType->getLLVMType(*context_, 0));
     }
 
     llvm::FunctionType* functionType = llvm::FunctionType::get(
-        node->type->returnType->irTypeGetter(*context_),
+        node->type->returnType->getLLVMType(*context_, 0),
         paramTypes,
         false
     );
@@ -96,7 +99,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     node->body->accept(this);
 
-    assert(!llvm::verifyFunction(*function, &llvm::errs()));
+    llvm::verifyFunction(*function, &llvm::errs());
 
     scopes_.pop_back();
 
@@ -110,14 +113,19 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
 std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
-    auto* varType = node->list->localVariables[node->name];
+    auto varType = node->list->localVariables[node->name];
 
-    llvm::AllocaInst* alloca = makeAlloca(node->name, varType->irTypeGetter(*context_));
+    llvm::AllocaInst* alloca = makeAlloca(node->name, varType->getLLVMType(*context_, curr_function_->getAddressSpace()));
 
     scopes_.back().insert({ node->name, alloca });
 
     if (node->value) {
+        if (type_calculator_.calculate(node->value.get()) != varType) {
+            std::cerr << "invalid type conversion at " << node->name << " def\n";
+        }
+
         auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
+        alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         builder_->CreateStore(value, alloca);
     }
 
@@ -128,6 +136,11 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 std::any IrEmitter::visitReturn(struct AsgReturn* node)
 {
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
+    auto retType = type_calculator_.calculate(node->value.get());
+
+    if (retType != node->function->type->returnType) {
+        std::cerr << "invalid return type in " << node->function->name << "\n";
+    }
 
     builder_->CreateRet(value);
 
@@ -137,10 +150,30 @@ std::any IrEmitter::visitReturn(struct AsgReturn* node)
 
 std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
 {
-    auto* alloca = findAlloca(node->name);
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
+    auto valType = type_calculator_.calculate(node->value.get());
+    llvm::Value* ptr = nullptr;
 
-    builder_->CreateStore(value, alloca);
+    if (node->name) {
+        ptr = findAlloca(*node->name);
+
+        auto varType = findVarType(*node->name, node);
+
+        if (varType != valType) {
+            std::cerr << "invalid conversion in " << *node->name << " assignment\n";
+        }
+    } else {
+        ptr = std::any_cast<llvm::Value*>(node->assignable->accept(this));
+
+        auto ptrType = type_calculator_.calculate(node->assignable.get());
+
+        if (ptrType->getDeref() != valType) {
+            std::cerr << "invalid conversion in assignment\n";
+        }
+    }
+
+    ptr->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
+    builder_->CreateStore(value, ptr);
 
     return {};
 }
@@ -266,10 +299,47 @@ std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
 }
 
 
+std::any IrEmitter::visitOpDeref(struct AsgOpDeref* node)
+{
+    auto* lastLoad = std::any_cast<llvm::Value*>(node->expression->accept(this));
+    auto exprType = type_calculator_.calculate(node->expression.get());
+
+    for (auto i = 0; i < node->derefCount; i++) {
+        auto derefType = exprType->getDeref();
+        if (!derefType) {
+            std::cerr << "invalid dereference\n";
+        }
+        lastLoad = builder_->CreateLoad(
+            derefType->getLLVMType(*context_, curr_function_->getAddressSpace()),
+            lastLoad
+        );
+        exprType = derefType;
+    }
+    return lastLoad;
+}
+
+
+std::any IrEmitter::visitOpRef(struct AsgOpRef* node)
+{
+    llvm::Value* val = nullptr;
+
+    if (auto* variable = dynamic_cast<AsgVariable*>(node->value.get())) {
+        val = findAlloca(variable->name);
+    } else {
+        std::cerr << "unexpected reference in " << node->function->name << "\n";
+    }
+
+    auto valType = type_calculator_.calculate(node);
+    return val;
+}
+
+
 std::any IrEmitter::visitVariable(struct AsgVariable* node)
 {
-    auto* alloca = findAlloca(node->name);
-    return (llvm::Value*)builder_->CreateLoad(alloca);
+    return (llvm::Value*)builder_->CreateLoad(
+        findVarType(node->name, node)->getLLVMType(*context_, curr_function_->getAddressSpace()),
+        findAlloca(node->name)
+    );
 }
 
 
@@ -309,4 +379,142 @@ llvm::AllocaInst* IrEmitter::makeAlloca(const std::string& name, llvm::Type* typ
     };
 
     return builder.CreateAlloca(type, nullptr, name);
+}
+
+
+Type::Id IrEmitter::findVarType(const std::string& name, const AsgNode* startNode)
+{
+    const AsgStatementList* list = startNode->list;
+    while (list) {
+        if (list->localVariables.find(name) != list->localVariables.end()) {
+            return list->localVariables.at(name);
+        }
+        list = list->list;
+    }
+    return nullptr;
+}
+
+
+std::any IrEmitter::TypeCalculator::visitStatementList(struct AsgStatementList* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitFunctionDefinition(struct AsgFunctionDefinition* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitVariableDefinition(struct AsgVariableDefinition* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitReturn(struct AsgReturn* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitAssignment(struct AsgAssignment* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitConditional(struct AsgConditional* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitComp(struct AsgComp* node)
+{
+    auto lt = std::any_cast<Type::Id>(node->lhs->accept(this));
+    auto rt = std::any_cast<Type::Id>(node->rhs->accept(this));
+    if (lt && rt) {
+        return TypeLibrary::inst().get("int");
+    }
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitAddSub(struct AsgAddSub* node)
+{
+    for (auto& sub : node->subexpressions) {
+        auto subtype = std::any_cast<Type::Id>(sub.expression->accept(this));
+        if (!subtype || subtype != TypeLibrary::inst().get("int")) {
+            return Type::invalid();
+        }
+    }
+    return TypeLibrary::inst().get("int");
+}
+
+
+std::any IrEmitter::TypeCalculator::visitMulDiv(struct AsgMulDiv* node)
+{
+    for (auto& sub : node->subexpressions) {
+        auto subtype = std::any_cast<Type::Id>(sub.expression->accept(this));
+        if (!subtype || subtype != TypeLibrary::inst().get("int")) {
+            return Type::invalid();
+        }
+    }
+    return TypeLibrary::inst().get("int");
+}
+
+
+std::any IrEmitter::TypeCalculator::visitOpDeref(struct AsgOpDeref* node)
+{
+    auto expType = std::any_cast<Type::Id>(node->expression->accept(this));
+
+    if (!expType->isPtr()) {
+        return Type::invalid();
+    }
+
+    for (int i = 0; i < node->derefCount; i++) {
+        if (expType) {
+            expType = expType->getDeref();
+        }
+    }
+
+    return expType;
+}
+
+
+std::any IrEmitter::TypeCalculator::visitOpRef(struct AsgOpRef* node)
+{
+    auto expType = std::any_cast<Type::Id>(node->value->accept(this));
+
+    if (!expType) {
+        return expType;
+    }
+
+    return expType->getRef();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitVariable(struct AsgVariable* node)
+{
+    return IrEmitter::findVarType(node->name, node);
+}
+
+
+std::any IrEmitter::TypeCalculator::visitCall(struct AsgCall* node)
+{
+    return node->callee->returnType;
+}
+
+
+std::any IrEmitter::TypeCalculator::visitIntLiteral(struct AsgIntLiteral* node)
+{
+    return TypeLibrary::inst().get("int");
+}
+
+
+Type::Id IrEmitter::TypeCalculator::calculate(AsgNode* node)
+{
+    return std::any_cast<Type::Id>(node->accept(this));
 }

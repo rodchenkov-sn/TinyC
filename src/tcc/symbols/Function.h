@@ -10,8 +10,8 @@
 
 struct Function {
     std::string name;
-    const Type* returnType;
-    std::vector<const Type*> parameters;
+    Type::Id returnType;
+    std::vector<Type::Id> parameters;
 };
 
 

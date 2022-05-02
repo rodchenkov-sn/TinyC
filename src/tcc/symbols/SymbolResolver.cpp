@@ -36,7 +36,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     Function function;
     function.name = node->name;
 
-    auto* retType = TypeLibrary::inst().get(node->returnType);
+    auto retType = TypeLibrary::inst().get(node->returnType);
 
     if (!retType) {
         errors_.emplace_back() << "undefined return type " << node->returnType << " in " << function.name << " signature";
@@ -47,7 +47,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     auto* topBlock = (AsgStatementList*) node->body.get();
 
     for (auto& parameter : node->parameters) {
-        auto* type = TypeLibrary::inst().get(parameter.type);
+        auto type = TypeLibrary::inst().get(parameter.type);
         if (!type) {
             errors_.emplace_back() << "undefined parameter type " << parameter.type << " in " << function.name << " signature";
         }
@@ -82,7 +82,7 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
         errors_.emplace_back() << "variable " << node->name << " was redefined";
     }
 
-    auto* type = TypeLibrary::inst().get(node->type);
+    auto type = TypeLibrary::inst().get(node->type);
     if (!type) {
         errors_.emplace_back() << "undefined type " << node->type << " in variable " << node->name << " definition";
     }
@@ -115,8 +115,12 @@ std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
     node->function = current_function_;
     node->list = top_scope_;
 
-    if (!findVarType(node->name)) {
-        errors_.emplace_back() << "variable " << node->name << " is undefined";
+    if (node->name) {
+        if (!findVarType(*node->name)) {
+            errors_.emplace_back() << "variable " << *node->name << " is undefined";
+        }
+    } else {
+        node->assignable->accept(this);
     }
 
     node->value->accept(this);
@@ -189,6 +193,18 @@ std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
 }
 
 
+std::any SymbolResolver::visitOpDeref(struct AsgOpDeref* node)
+{
+    return node->expression->accept(this);
+}
+
+
+std::any SymbolResolver::visitOpRef(struct AsgOpRef* node)
+{
+    return node->value->accept(this);
+}
+
+
 std::any SymbolResolver::visitVariable(struct AsgVariable* node)
 {
     node->function = current_function_;
@@ -207,9 +223,13 @@ std::any SymbolResolver::visitCall(struct AsgCall* node)
     node->function = current_function_;
     node->list = top_scope_;
 
-    if (!FunctionLibrary::inst().get(node->functionName)) {
+    auto funId = FunctionLibrary::inst().get(node->functionName);
+
+    if (!funId) {
         errors_.emplace_back() << "function " << node->functionName << " is undefined";
     }
+
+    node->callee = funId;
 
     for (auto& arg : node->arguments) {
         arg->accept(this);
@@ -229,7 +249,7 @@ std::any SymbolResolver::visitIntLiteral(struct AsgIntLiteral* node)
 }
 
 
-TypeId SymbolResolver::findVarType(const std::string& name) const
+Type::Id SymbolResolver::findVarType(const std::string& name) const
 {
     auto* currScope = top_scope_;
     while (currScope) {
