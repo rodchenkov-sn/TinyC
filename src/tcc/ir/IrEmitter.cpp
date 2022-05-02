@@ -97,6 +97,12 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
         }
     }
 
+    if (node->type->returnType == TypeLibrary::inst().get("void")) {
+        // ToDo: kill it with fire
+        auto* topLevelList = (AsgStatementList*)node->body.get();
+        topLevelList->statements.push_back(std::make_unique<AsgReturn>());
+    }
+
     node->body->accept(this);
 
     llvm::verifyFunction(*function, &llvm::errs());
@@ -135,6 +141,11 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 
 std::any IrEmitter::visitReturn(struct AsgReturn* node)
 {
+    if (!node->value) {
+        builder_->CreateRetVoid();
+        return {};
+    }
+    
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
     auto retType = type_calculator_.calculate(node->value.get());
 

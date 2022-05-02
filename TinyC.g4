@@ -46,7 +46,7 @@ assignable
     ;
 
 returnStatement
-    :   RETURN expression
+    :   RETURN expression?
     ;
 
 expression

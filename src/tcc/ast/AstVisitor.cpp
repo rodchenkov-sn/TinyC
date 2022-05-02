@@ -148,8 +148,10 @@ std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *c
 {
     auto node = std::make_unique<AsgReturn>();
 
-    auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
-    node->value.reset(e);
+    if (ctx->expression()) {
+        auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
+        node->value.reset(e);
+    }
 
     return node.release();
 }

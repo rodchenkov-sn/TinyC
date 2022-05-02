@@ -12,7 +12,7 @@
 int main()
 {
     std::ifstream file;
-    file.open("../examples/flow_control/FlowControl.c");
+    file.open("../examples/pointers/Pointers.c");
 
     if (!file.is_open()) {
         std::cout << "could not open input";
