@@ -25,6 +25,7 @@ private:
     std::any visitVariableDefinition(struct AsgVariableDefinition* node) override;
     std::any visitReturn(struct AsgReturn* node) override;
     std::any visitAssignment(struct AsgAssignment* node) override;
+    std::any visitConditional(struct AsgConditional *node) override;
 
     std::any visitComp(struct AsgComp *node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
@@ -34,6 +35,7 @@ private:
     std::any visitIntLiteral(struct AsgIntLiteral* node) override;
 
     llvm::AllocaInst* findAlloca(const std::string& name) const;
+    llvm::AllocaInst* makeAlloca(const std::string& name, llvm::Type* type);
 
     std::unique_ptr<llvm::LLVMContext> context_;
     std::unique_ptr<llvm::Module> module_;
@@ -41,6 +43,7 @@ private:
     std::unique_ptr<llvm::legacy::FunctionPassManager> fpm_;
 
     std::deque<std::unordered_map<std::string, llvm::AllocaInst*>> scopes_;
+    llvm::Function* curr_function_;
 };
 
 

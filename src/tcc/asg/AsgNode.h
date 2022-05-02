@@ -17,7 +17,9 @@ struct AsgNode {
 
     virtual std::any accept(AsgVisitorBase *visitor) = 0;
 
-    struct AsgStatementList* parent = nullptr;
+    AsgNode* parent = nullptr;
+
+    struct AsgStatementList* list = nullptr;
     struct AsgFunctionDefinition* function = nullptr;
 };
 
@@ -67,6 +69,15 @@ struct AsgAssignment : AsgNode {
 
     std::string name;
     std::unique_ptr<AsgNode> value;
+};
+
+
+struct AsgConditional : AsgNode {
+    std::any accept(AsgVisitorBase *visitor) override { return visitor->visitConditional(this); }
+
+    std::unique_ptr<AsgNode> condition;
+    std::unique_ptr<AsgNode> thenNode;
+    std::unique_ptr<AsgNode> elseNode;
 };
 
 

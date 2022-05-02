@@ -12,7 +12,7 @@
 int main()
 {
     std::ifstream file;
-    file.open("../examples/math/Math.c");
+    file.open("../examples/flow_control/FlowControl.c");
 
     if (!file.is_open()) {
         std::cout << "could not open input";
@@ -37,7 +37,7 @@ int main()
     }
 
     IrEmitter emitter;
-    auto module = emitter.emmit(root, "Bruh");
+    auto module = emitter.emmit(root, "Bruh", false);
 
     module->print(llvm::errs(), nullptr);
 

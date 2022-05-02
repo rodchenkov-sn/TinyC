@@ -10,6 +10,7 @@ public:
     std::any visitFunction(TinyCParser::FunctionContext *ctx) override;
     std::any visitStatements(TinyCParser::StatementsContext *ctx) override;
     std::any visitStatement(TinyCParser::StatementContext *ctx) override;
+    std::any visitIfStatement(TinyCParser::IfStatementContext *ctx) override;
     std::any visitVariableDecl(TinyCParser::VariableDeclContext *ctx) override;
     std::any visitAssignment(TinyCParser::AssignmentContext *ctx) override;
     std::any visitReturnStatement(TinyCParser::ReturnStatementContext *ctx) override;

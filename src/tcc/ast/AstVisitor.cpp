@@ -73,7 +73,36 @@ std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
     if (ctx->variableDecl()) {
         return visitVariableDecl(ctx->variableDecl());
     }
+    if (ctx->ifStatement()) {
+        return visitIfStatement(ctx->ifStatement());
+    }
     return visitStatements(ctx->statements());
+}
+
+
+std::any AstVisitor::visitIfStatement(TinyCParser::IfStatementContext* ctx)
+{
+    auto node = std::make_unique<AsgConditional>();
+
+    node->condition.reset(std::any_cast<AsgNode*>(visit(ctx->expression())));
+
+    auto thenNode = visit(ctx->statement(0));
+    if (thenNode.type() == typeid(AsgNode*)) {
+        node->thenNode.reset(std::any_cast<AsgNode*>(thenNode));
+    } else {
+        node->thenNode.reset(std::any_cast<AsgReturn*>(thenNode));
+    }
+
+    if (ctx->statement().size() == 2) {
+        auto elseNode = visit(ctx->statement(1));
+        if (elseNode.type() == typeid(AsgNode*)) {
+            node->elseNode.reset(std::any_cast<AsgNode*>(elseNode));
+        } else {
+            node->elseNode.reset(std::any_cast<AsgReturn*>(elseNode));
+        }
+    }
+
+    return (AsgNode*)node.release();
 }
 
 

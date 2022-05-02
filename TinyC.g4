@@ -25,7 +25,12 @@ statement
     |   variableDecl SEMICOLON
     |   assignment SEMICOLON
     |   expression SEMICOLON
+    |   ifStatement
     |   statements
+    ;
+
+ifStatement
+    :   IF L_PARAN expression R_PARAN statement ( ELSE statement )?
     ;
 
 variableDecl
@@ -108,6 +113,8 @@ functionName
 
 
 RETURN : 'return';
+IF     : 'if';
+ELSE   : 'else';
 
 
 IDENTIFIER

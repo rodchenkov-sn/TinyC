@@ -5,6 +5,7 @@
 #include <llvm/Transforms/Scalar/GVN.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/IR/Instructions.h>
 
 
 std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view moduleName, bool optimize)
@@ -74,6 +75,8 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
         module_.get()
     );
 
+    curr_function_ = function;
+
     llvm::BasicBlock* bb = llvm::BasicBlock::Create(*context_, "entry", function);
     builder_->SetInsertPoint(bb);
 
@@ -84,7 +87,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
             param.setName(paramName + "_arg");
 
-            llvm::AllocaInst* alloca = builder_->CreateAlloca(param.getType(), nullptr, paramName);
+            llvm::AllocaInst* alloca = makeAlloca(paramName, param.getType());
             builder_->CreateStore(&param, alloca);
 
             scopes_.back().insert({ paramName, alloca });
@@ -99,15 +102,17 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     fpm_->run(*function);
 
+    curr_function_ = nullptr;
+
     return {};
 }
 
 
 std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
-    auto* varType = node->parent->localVariables[node->name];
+    auto* varType = node->list->localVariables[node->name];
 
-    llvm::AllocaInst* alloca = builder_->CreateAlloca(varType->irTypeGetter(*context_), nullptr, node->name);
+    llvm::AllocaInst* alloca = makeAlloca(node->name, varType->irTypeGetter(*context_));
 
     scopes_.back().insert({ node->name, alloca });
 
@@ -136,6 +141,62 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
 
     builder_->CreateStore(value, alloca);
+
+    return {};
+}
+
+
+std::any IrEmitter::visitConditional(struct AsgConditional* node)
+{
+    auto* condVal = std::any_cast<llvm::Value*>(node->condition->accept(this));
+    auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), 0);
+    auto* cond = builder_->CreateICmpNE(condVal, constZero);
+
+    llvm::BasicBlock* thenBB = llvm::BasicBlock::Create(*context_, "then", curr_function_);
+
+    llvm::BasicBlock* elseBB = nullptr;
+    if (node->elseNode) {
+        elseBB = llvm::BasicBlock::Create(*context_, "else", curr_function_);
+    }
+
+    llvm::BasicBlock* mergeBB = nullptr;
+
+    auto* parentList = dynamic_cast<AsgStatementList*>(node->parent);
+    const auto isLastNode = !parentList || parentList->statements.back().get() == node;
+
+    if (!isLastNode) {
+        mergeBB = llvm::BasicBlock::Create(*context_, "merge", curr_function_);
+    }
+
+    if (elseBB) {
+        builder_->CreateCondBr(cond, thenBB, elseBB);
+    } else {
+        builder_->CreateCondBr(cond, thenBB, mergeBB);
+    }
+
+    {
+        builder_->SetInsertPoint(thenBB);
+        node->thenNode->accept(this);
+        builder_->SetInsertPoint(thenBB);
+        const auto endedWithRet = thenBB->back().isTerminator();
+        if (!isLastNode && !endedWithRet) {
+            builder_->CreateBr(mergeBB);
+        }
+    }
+
+    if (elseBB) {
+        builder_->SetInsertPoint(elseBB);
+        node->elseNode->accept(this);
+        builder_->SetInsertPoint(elseBB);
+        const auto endedWithRet = elseBB->back().isTerminator();
+        if (!isLastNode && !endedWithRet) {
+            builder_->CreateBr(mergeBB);
+        }
+    }
+
+    if (mergeBB) {
+        builder_->SetInsertPoint(mergeBB);
+    }
 
     return {};
 }
@@ -238,4 +299,14 @@ llvm::AllocaInst* IrEmitter::findAlloca(const std::string& name) const
         }
     }
     return nullptr;
+}
+
+llvm::AllocaInst* IrEmitter::makeAlloca(const std::string& name, llvm::Type* type)
+{
+    llvm::IRBuilder<> builder{
+        &curr_function_->getEntryBlock(),
+        curr_function_->getEntryBlock().begin()
+    };
+
+    return builder.CreateAlloca(type, nullptr, name);
 }
