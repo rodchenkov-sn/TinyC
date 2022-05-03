@@ -83,6 +83,14 @@ struct AsgConditional : AsgNode {
 };
 
 
+struct AsgLoop : AsgNode {
+    std::any accept(AsgVisitorBase* visitor) override { return visitor->visitLoop(this); }
+
+    std::unique_ptr<AsgNode> condition;
+    std::unique_ptr<AsgNode> body;
+};
+
+
 struct AsgComp : AsgNode {
     enum class Operator {
         Equals, NotEquals, Less, LessEquals, Greater, GreaterEquals

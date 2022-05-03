@@ -12,6 +12,7 @@ struct AsgVisitorBase {
     virtual std::any visitReturn(struct AsgReturn* node) = 0;
     virtual std::any visitAssignment(struct AsgAssignment* node) = 0;
     virtual std::any visitConditional(struct AsgConditional* node) = 0;
+    virtual std::any visitLoop(struct AsgLoop* node) = 0;
 
     virtual std::any visitComp(struct AsgComp* node) = 0;
     virtual std::any visitAddSub(struct AsgAddSub* node) = 0;

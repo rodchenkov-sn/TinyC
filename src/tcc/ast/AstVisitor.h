@@ -14,6 +14,8 @@ public:
     std::any visitVariableDecl(TinyCParser::VariableDeclContext *ctx) override;
     std::any visitAssignment(TinyCParser::AssignmentContext *ctx) override;
     std::any visitReturnStatement(TinyCParser::ReturnStatementContext *ctx) override;
+    std::any visitWhileStatement(TinyCParser::WhileStatementContext *ctx) override;
+    std::any visitForStatement(TinyCParser::ForStatementContext *ctx) override;
 
     std::any visitCompExpression(TinyCParser::CompExpressionContext *ctx) override;
     std::any visitAddSubExpr(TinyCParser::AddSubExprContext *ctx) override;

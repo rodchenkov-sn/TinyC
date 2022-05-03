@@ -12,7 +12,7 @@
 int main()
 {
     std::ifstream file;
-    file.open("../examples/pointers/Pointers.c");
+    file.open("../examples/loops/Loops.c");
 
     if (!file.is_open()) {
         std::cout << "could not open input";

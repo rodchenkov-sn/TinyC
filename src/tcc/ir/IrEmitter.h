@@ -31,6 +31,8 @@ private:
         std::any visitReturn(struct AsgReturn* node) override;
         std::any visitAssignment(struct AsgAssignment* node) override;
         std::any visitConditional(struct AsgConditional* node) override;
+        std::any visitLoop(struct AsgLoop *node) override;
+
         std::any visitComp(struct AsgComp* node) override;
         std::any visitAddSub(struct AsgAddSub* node) override;
         std::any visitMulDiv(struct AsgMulDiv* node) override;
@@ -49,6 +51,7 @@ private:
     std::any visitReturn(struct AsgReturn* node) override;
     std::any visitAssignment(struct AsgAssignment* node) override;
     std::any visitConditional(struct AsgConditional *node) override;
+    std::any visitLoop(struct AsgLoop *node) override;
 
     std::any visitComp(struct AsgComp *node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;

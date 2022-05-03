@@ -150,6 +150,14 @@ std::any SymbolResolver::visitConditional(struct AsgConditional* node)
 }
 
 
+std::any SymbolResolver::visitLoop(struct AsgLoop* node)
+{
+    node->condition->accept(this);
+    node->body->accept(this);
+    return {};
+}
+
+
 std::any SymbolResolver::visitComp(struct AsgComp* node)
 {
     node->function = current_function_;

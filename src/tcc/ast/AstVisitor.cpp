@@ -71,6 +71,12 @@ std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
     if (ctx->ifStatement()) {
         return visitIfStatement(ctx->ifStatement());
     }
+    if (ctx->forStatement()) {
+        return visitForStatement(ctx->forStatement());
+    }
+    if (ctx->whileStatement()) {
+        return visitWhileStatement(ctx->whileStatement());
+    }
     return visitStatements(ctx->statements());
 }
 
@@ -148,6 +154,36 @@ std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *c
     }
 
     return node.release();
+}
+
+
+std::any AstVisitor::visitWhileStatement(TinyCParser::WhileStatementContext* ctx)
+{
+    auto node = std::make_unique<AsgLoop>();
+
+    node->condition.reset(std::any_cast<AsgNode*>(visit(ctx->expression())));
+    node->body.reset(std::any_cast<AsgNode*>(visit(ctx->statement())));
+
+    return (AsgNode*)node.release();
+}
+
+
+std::any AstVisitor::visitForStatement(TinyCParser::ForStatementContext* ctx)
+{
+    auto node = std::make_unique<AsgStatementList>();
+    node->statements.emplace_back(std::any_cast<AsgNode*>(visit(ctx->expression(0))));
+    {
+        auto loopNode = std::make_unique<AsgLoop>();
+        loopNode->condition.reset(std::any_cast<AsgNode*>(visit(ctx->expression(1))));
+        {
+            auto loopBody = std::make_unique<AsgStatementList>();
+            loopBody->statements.emplace_back(std::any_cast<AsgNode*>(visit(ctx->statement())));
+            loopBody->statements.emplace_back(std::any_cast<AsgNode*>(visit(ctx->expression(2))));
+            loopNode->body = std::move(loopBody);
+        }
+        node->statements.emplace_back(std::move(loopNode));
+    }
+    return (AsgNode*)node.release();
 }
 
 

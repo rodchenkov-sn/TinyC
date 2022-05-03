@@ -241,6 +241,31 @@ std::any IrEmitter::visitConditional(struct AsgConditional* node)
 }
 
 
+std::any IrEmitter::visitLoop(struct AsgLoop* node)
+{
+    llvm::BasicBlock* condBlock = llvm::BasicBlock::Create(*context_, "loop_cond", curr_function_);
+    llvm::BasicBlock* loopBlock = llvm::BasicBlock::Create(*context_, "loop_body", curr_function_);
+    llvm::BasicBlock* mergeBlock = llvm::BasicBlock::Create(*context_, "loop_merge", curr_function_);
+
+    builder_->CreateBr(condBlock);
+
+    builder_->SetInsertPoint(condBlock);
+    auto* condVal = std::any_cast<llvm::Value*>(node->condition->accept(this));
+    auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), 0);
+    auto* cond = builder_->CreateICmpNE(condVal, constZero);
+    builder_->CreateCondBr(cond, loopBlock, mergeBlock);
+
+    builder_->SetInsertPoint(loopBlock);
+    node->body->accept(this);
+    builder_->SetInsertPoint(loopBlock);
+    builder_->CreateBr(condBlock);
+
+    builder_->SetInsertPoint(mergeBlock);
+
+    return {};
+}
+
+
 std::any IrEmitter::visitComp(struct AsgComp* node)
 {
     auto* lhs = std::any_cast<llvm::Value*>(node->lhs->accept(this));
@@ -432,6 +457,12 @@ std::any IrEmitter::TypeCalculator::visitAssignment(struct AsgAssignment* node)
 
 
 std::any IrEmitter::TypeCalculator::visitConditional(struct AsgConditional* node)
+{
+    return Type::invalid();
+}
+
+
+std::any IrEmitter::TypeCalculator::visitLoop(struct AsgLoop* node)
 {
     return Type::invalid();
 }

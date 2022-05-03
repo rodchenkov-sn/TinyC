@@ -24,7 +24,17 @@ statement
     :   returnStatement SEMICOLON
     |   expression SEMICOLON
     |   ifStatement
+    |   whileStatement
+    |   forStatement
     |   statements
+    ;
+
+whileStatement
+    :   WHILE L_PARAN expression R_PARAN statement
+    ;
+
+forStatement
+    :   FOR L_PARAN expression SEMICOLON expression SEMICOLON expression R_PARAN statement
     ;
 
 ifStatement
@@ -131,6 +141,8 @@ functionName
 RETURN : 'return';
 IF     : 'if';
 ELSE   : 'else';
+WHILE  : 'while';
+FOR    : 'for';
 
 
 IDENTIFIER
