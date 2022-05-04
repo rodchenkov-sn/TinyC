@@ -16,7 +16,7 @@ int main()
 
     if (!file.is_open()) {
         std::cout << "could not open input";
-        return 1;
+        return EXIT_FAILURE;
     }
 
     antlr4::ANTLRInputStream inputStream{ file };
@@ -33,7 +33,7 @@ int main()
         for (auto& errorStream : resolver.getErrors()) {
             std::cerr << errorStream.str() << "\n";
         }
-        return 1;
+        return EXIT_FAILURE;
     }
 
     IrEmitter emitter;
@@ -41,5 +41,5 @@ int main()
 
     module->print(llvm::errs(), nullptr);
 
-    return 0;
+    return EXIT_SUCCESS;
 }
