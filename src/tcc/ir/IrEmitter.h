@@ -18,7 +18,7 @@
 
 class IrEmitter : private AsgVisitorBase {
 public:
-    std::unique_ptr<llvm::Module> emmit(AsgNode* root, std::string_view moduleName, bool optimize = true);
+    std::unique_ptr<llvm::Module> emit(AsgNode* root, std::string_view moduleName, bool optimize = true);
 
 private:
 

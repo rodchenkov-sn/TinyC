@@ -37,7 +37,7 @@ int main()
     }
 
     IrEmitter emitter;
-    auto module = emitter.emmit(root, "Bruh");
+    auto module = emitter.emit(root, "Bruh");
 
     module->print(llvm::errs(), nullptr);
 

@@ -11,7 +11,7 @@
 #include "symbols/TypeLib.h"
 
 
-std::unique_ptr<llvm::Module> IrEmitter::emmit(AsgNode* root, std::string_view moduleName, bool optimize)
+std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view moduleName, bool optimize)
 {
     context_ = std::make_unique<llvm::LLVMContext>();
     module_ = std::make_unique<llvm::Module>(moduleName, *context_);
