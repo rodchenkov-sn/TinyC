@@ -13,6 +13,7 @@ public:
     std::any visitIfStatement(TinyCParser::IfStatementContext *ctx) override;
     std::any visitVariableDecl(TinyCParser::VariableDeclContext *ctx) override;
     std::any visitAssignment(TinyCParser::AssignmentContext *ctx) override;
+    std::any visitAssignable(TinyCParser::AssignableContext *ctx) override;
     std::any visitReturnStatement(TinyCParser::ReturnStatementContext *ctx) override;
     std::any visitWhileStatement(TinyCParser::WhileStatementContext *ctx) override;
     std::any visitForStatement(TinyCParser::ForStatementContext *ctx) override;
@@ -20,6 +21,7 @@ public:
     std::any visitCompExpression(TinyCParser::CompExpressionContext *ctx) override;
     std::any visitAddSubExpr(TinyCParser::AddSubExprContext *ctx) override;
     std::any visitMulDivExpr(TinyCParser::MulDivExprContext *ctx) override;
+    std::any visitIndexedOperand(TinyCParser::IndexedOperandContext *ctx) override;
     std::any visitOperandDereference(TinyCParser::OperandDereferenceContext *ctx) override;
     std::any visitCallExpr(TinyCParser::CallExprContext *ctx) override;
     std::any visitLiteral(TinyCParser::LiteralContext *ctx) override;

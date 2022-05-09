@@ -6,6 +6,7 @@
 #include <sstream>
 #include <deque>
 #include <unordered_map>
+#include <stack>
 
 #include <llvm/IR/Module.h>
 #include <llvm/IR/IRBuilder.h>
@@ -36,11 +37,16 @@ private:
         std::any visitComp(struct AsgComp* node) override;
         std::any visitAddSub(struct AsgAddSub* node) override;
         std::any visitMulDiv(struct AsgMulDiv* node) override;
+        std::any visitIndexing(struct AsgIndexing *node) override;
         std::any visitOpDeref(struct AsgOpDeref* node) override;
         std::any visitOpRef(struct AsgOpRef* node) override;
         std::any visitVariable(struct AsgVariable* node) override;
         std::any visitCall(struct AsgCall* node) override;
         std::any visitIntLiteral(struct AsgIntLiteral* node) override;
+    };
+
+    enum class Context {
+        Load, NoLoad, Call, Undefined
     };
 
     friend class TypeCalculator;
@@ -56,6 +62,7 @@ private:
     std::any visitComp(struct AsgComp *node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
     std::any visitMulDiv(struct AsgMulDiv* node) override;
+    std::any visitIndexing(struct AsgIndexing *node) override;
     std::any visitOpDeref(struct AsgOpDeref *node) override;
     std::any visitOpRef(struct AsgOpRef *node) override;
     std::any visitVariable(struct AsgVariable* node) override;
@@ -76,6 +83,7 @@ private:
     llvm::Function* curr_function_;
 
     TypeCalculator type_calculator_;
+    std::stack<Context> op_context_;
 };
 
 

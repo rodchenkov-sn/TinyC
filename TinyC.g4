@@ -13,7 +13,11 @@ type
     ;
 
 parameters
-    :   type variableName ( COMMA type variableName )*
+    :   parameter ( COMMA parameter )*
+    ;
+
+parameter
+    :   type variableName constantIndexing*
     ;
 
 statements
@@ -42,7 +46,7 @@ ifStatement
     ;
 
 variableDecl
-    :   type variableName ( EQUAL expression )?
+    :   type variableName constantIndexing* (EQUAL expression)?
     ;
 
 assignment
@@ -50,7 +54,7 @@ assignment
     ;
 
 assignable
-    :   ASTERISK* variableName
+    :   ASTERISK* variableName indexing*
     ;
 
 returnStatement
@@ -86,7 +90,11 @@ mulDivExpr
     ;
 
 operandDereference
-    :   ASTERISK* operand
+    :   ASTERISK* indexedOperand
+    ;
+
+indexedOperand
+    :   operand indexing*
     ;
 
 operand
@@ -110,6 +118,14 @@ referenceableValue
 
 callExpr
     :   functionName L_PARAN arguments? R_PARAN
+    ;
+
+constantIndexing
+    :   L_BRACK INT_LITERAL? R_BRACK
+    ;
+
+indexing
+    :   L_BRACK expression R_BRACK
     ;
 
 arguments
@@ -170,6 +186,8 @@ L_BRACE   : '{';
 R_BRACE   : '}';
 L_PARAN   : '(';
 R_PARAN   : ')';
+L_BRACK   : '[';
+R_BRACK   : ']';
 ASTERISK  : '*';
 EQUAL     : '=';
 PLUS      : '+';

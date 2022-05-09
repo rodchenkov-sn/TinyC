@@ -115,14 +115,7 @@ std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
     node->function = current_function_;
     node->list = top_scope_;
 
-    if (node->name) {
-        if (!findVarType(*node->name)) {
-            errors_.emplace_back() << "variable " << *node->name << " is undefined";
-        }
-    } else {
-        node->assignable->accept(this);
-    }
-
+    node->assignable->accept(this);
     node->value->accept(this);
     node->value->parent = node;
 
@@ -152,6 +145,9 @@ std::any SymbolResolver::visitConditional(struct AsgConditional* node)
 
 std::any SymbolResolver::visitLoop(struct AsgLoop* node)
 {
+    node->function = current_function_;
+    node->list = top_scope_;
+
     node->condition->accept(this);
     node->body->accept(this);
     return {};
@@ -201,14 +197,35 @@ std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
 }
 
 
+std::any SymbolResolver::visitIndexing(struct AsgIndexing* node)
+{
+    node->function = current_function_;
+    node->list = top_scope_;
+
+    node->indexed->accept(this);
+
+    for (auto& index : node->indexes) {
+        index->accept(this);
+    }
+
+    return {};
+}
+
+
 std::any SymbolResolver::visitOpDeref(struct AsgOpDeref* node)
 {
+    node->function = current_function_;
+    node->list = top_scope_;
+
     return node->expression->accept(this);
 }
 
 
 std::any SymbolResolver::visitOpRef(struct AsgOpRef* node)
 {
+    node->function = current_function_;
+    node->list = top_scope_;
+
     return node->value->accept(this);
 }
 

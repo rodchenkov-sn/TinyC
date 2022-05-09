@@ -1,5 +1,8 @@
 #include "AstVisitor.h"
 
+#include <algorithm>
+#include <numeric>
+
 #include "asg/AsgNode.h"
 
 
@@ -22,11 +25,23 @@ std::any AstVisitor::visitFunction(TinyCParser::FunctionContext *ctx)
     node->name = ctx->functionName()->getText();
 
     if (auto* params = ctx->parameters()) {
-        for (auto i = 0; i < params->type().size(); i++) {
-            AsgFunctionDefinition::Parameter p{
-                params->type(i)->getText(),
-                params->variableName(i)->getText()
-            };
+        for (auto* paramCtx : params->parameter())
+        {
+            const auto& indexes = paramCtx->constantIndexing();
+
+            AsgFunctionDefinition::Parameter p;
+            p.type = paramCtx->type()->typeName()->getText()
+                   + std::string(paramCtx->type()->ASTERISK().size(), '*')
+                   + std::accumulate(
+                        indexes.begin(),
+                        indexes.end(),
+                        std::string{},
+                        [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
+                            return accum + indexing->getText();
+                        }
+                   );
+            p.name = paramCtx->variableName()->getText();
+
             node->parameters.push_back(p);
         }
     }
@@ -111,8 +126,19 @@ std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext *ctx)
 {
     auto node = std::make_unique<AsgVariableDefinition>();
 
+    const auto& indexes = ctx->constantIndexing();
+
     node->type = ctx->type()->typeName()->getText()
-               + std::string(ctx->type()->ASTERISK().size(), '*');
+               + std::string(ctx->type()->ASTERISK().size(), '*')
+               + std::accumulate(
+                   indexes.begin(),
+                   indexes.end(),
+                   std::string{},
+                   [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
+                       return accum + indexing->getText();
+                   }
+               );
+
     node->name = ctx->variableName()->getText();
 
     if (ctx->expression()) {
@@ -123,26 +149,51 @@ std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext *ctx)
     return (AsgNode*)node.release();
 }
 
+
 std::any AstVisitor::visitAssignment(TinyCParser::AssignmentContext *ctx)
 {
     auto node = std::make_unique<AsgAssignment>();
 
-    if (ctx->assignable()->ASTERISK().empty()) {
-        node->name = ctx->assignable()->variableName()->getText();
-    } else {
-        auto deref = std::make_unique<AsgOpDeref>();
-        deref->derefCount = ctx->assignable()->ASTERISK().size() - 1;
-        auto varNode = std::make_unique<AsgVariable>();
-        varNode->name = ctx->assignable()->variableName()->getText();
-        deref->expression = std::move(varNode);
-        node->assignable = std::move(deref);
-    }
+    node->assignable.reset(std::any_cast<AsgNode*>(visit(ctx->assignable())));
 
     auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
     node->value.reset(e);
 
     return (AsgNode*)node.release();
 }
+
+
+std::any AstVisitor::visitAssignable(TinyCParser::AssignableContext* ctx)
+{
+    if (ctx->indexing().empty() && ctx->ASTERISK().empty()) {
+        return visit(ctx->variableName());
+    }
+    if (ctx->indexing().empty()) {
+        auto node = std::make_unique<AsgOpDeref>();
+        node->derefCount = ctx->ASTERISK().size();
+        node->expression.reset(std::any_cast<AsgNode*>(visit(ctx->variableName())));
+        return (AsgNode*)node.release();
+    } else if (ctx->ASTERISK().empty()) {
+        auto node = std::make_unique<AsgIndexing>();
+        node->indexed.reset(std::any_cast<AsgNode*>(visit(ctx->variableName())));
+        for (auto* index : ctx->indexing()) {
+            node->indexes.emplace_back(std::any_cast<AsgNode*>(visit(index->expression())));
+        }
+        return (AsgNode*)node.release();
+    }
+    auto node = std::make_unique<AsgOpDeref>();
+    node->derefCount = ctx->ASTERISK().size();
+    {
+        auto inner = std::make_unique<AsgIndexing>();
+        inner->indexed.reset(std::any_cast<AsgNode*>(visit(ctx->variableName())));
+        for (auto* index : ctx->indexing()) {
+            inner->indexes.emplace_back(std::any_cast<AsgNode*>(visit(index->expression())));
+        }
+        node->expression = std::move(inner);
+    }
+    return (AsgNode*)node.release();
+}
+
 
 std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *ctx)
 {
@@ -271,15 +322,33 @@ std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext *ctx)
 }
 
 
+std::any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx)
+{
+    if (ctx->indexing().empty()) {
+        return visit(ctx->operand());
+    }
+
+    auto node = std::make_unique<AsgIndexing>();
+
+    node->indexed.reset(std::any_cast<AsgNode*>(visit(ctx->operand())));
+
+    for (auto* indexCtx : ctx->indexing()) {
+        node->indexes.emplace_back(std::any_cast<AsgNode*>(visit(indexCtx->expression())));
+    }
+
+    return (AsgNode*)node.release();
+}
+
+
 std::any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx)
 {
     if (ctx->ASTERISK().empty()) {
-        return visit(ctx->operand());
+        return visit(ctx->indexedOperand());
     }
 
     auto node = std::make_unique<AsgOpDeref>();
     node->derefCount = ctx->ASTERISK().size();
-    node->expression.reset(std::any_cast<AsgNode*>(visit(ctx->operand())));
+    node->expression.reset(std::any_cast<AsgNode*>(visit(ctx->indexedOperand())));
     return (AsgNode*)node.release();
 }
 

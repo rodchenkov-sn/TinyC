@@ -69,7 +69,6 @@ struct AsgAssignment : AsgNode {
     std::any accept(AsgVisitorBase* visitor) override { return visitor->visitAssignment(this); }
 
     std::unique_ptr<AsgNode> assignable;
-    std::optional<std::string> name;
     std::unique_ptr<AsgNode> value;
 };
 
@@ -133,6 +132,14 @@ struct AsgMulDiv : AsgNode {
     std::any accept(AsgVisitorBase* visitor) override { return visitor->visitMulDiv(this); }
 
     std::vector<Subexpression> subexpressions;
+};
+
+
+struct AsgIndexing : AsgNode {
+    std::any accept(AsgVisitorBase* visitor) override { return visitor->visitIndexing(this); }
+
+    std::unique_ptr<AsgNode> indexed;
+    std::vector<std::unique_ptr<AsgNode>> indexes;
 };
 
 

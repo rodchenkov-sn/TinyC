@@ -15,34 +15,67 @@ struct Type {
     static Id invalid() { return nullptr; };
 
     virtual Id getRef() const = 0;
+    virtual Id getArray(int size) const = 0;
 
     virtual bool isPtr() const = 0;
     virtual Id getDeref() const = 0;
 
+    virtual bool isArray() const = 0;
+    virtual Id getIndexed() const = 0;
+    virtual int getSize() const = 0;
+
     virtual Id getNamed() const = 0;
 
     virtual llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const = 0;
+    virtual llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
+    {
+        return getLLVMType(ctx, addrSpace);
+    }
+};
+
+
+class ArrayType : public Type, public std::enable_shared_from_this<ArrayType> {
+public:
+    ArrayType(Id underlying, int size);
+
+    Id getRef() const override;
+    Id getArray(int size) const override;
+
+    bool isPtr() const override;
+    Id getDeref() const override;
+
+    bool isArray() const override;
+    Id getIndexed() const override;
+    int getSize() const override;
+
+    Id getNamed() const override;
+
+    llvm::Type* getLLVMType(llvm::LLVMContext &ctx, unsigned int addrSpace) const override;
+    llvm::Type* getLLVMParamType(llvm::LLVMContext &ctx, unsigned int addrSpace) const override;
+
+private:
+    Id underlying_;
+    int size_;
 };
 
 
 class PtrType : public Type, public std::enable_shared_from_this<PtrType> {
 public:
-    explicit PtrType(Id underlying)
-        : underlying_(std::move(underlying))
-    {}
+    explicit PtrType(Id underlying);
 
-    Id getRef() const override { return std::make_shared<PtrType>(shared_from_this()); }
+    Id getRef() const override;
+    Id getArray(int size) const override;
 
-    bool isPtr() const override { return true; }
+    bool isPtr() const override;
+    Id getDeref() const override;
 
-    Id getDeref() const override { return underlying_; }
+    bool isArray() const override;
+    Id getIndexed() const override;
+    int getSize() const override;
 
-    Id getNamed() const override { return underlying_->getNamed(); }
+    Id getNamed() const override;
 
-    llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override
-    {
-        return llvm::PointerType::get(ctx, addrSpace);
-    }
+    llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
 private:
     Id underlying_;
@@ -53,18 +86,21 @@ class BaseType : public Type, public std::enable_shared_from_this<BaseType> {
     using TypeGetter = std::function<llvm::Type*(llvm::LLVMContext&)>;
 
 public:
-    explicit BaseType(TypeGetter typeGetter)
-        : type_getter_(std::move(typeGetter))
-    {}
+    explicit BaseType(TypeGetter typeGetter);
 
-    Id getRef() const override { return std::make_shared<PtrType>(shared_from_this()); }
+    Id getRef() const override;
+    Id getArray(int size) const override;
 
-    bool isPtr() const override { return false; }
-    Id getDeref() const override { return nullptr; }
+    bool isPtr() const override;
+    Id getDeref() const override;
 
-    Id getNamed() const override { return shared_from_this(); }
+    bool isArray() const override;
+    Id getIndexed() const override;
+    int getSize() const override;
 
-    llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int) const override { return type_getter_(ctx); }
+    Id getNamed() const override;
+
+    llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int) const override;
 
 private:
     TypeGetter type_getter_;
