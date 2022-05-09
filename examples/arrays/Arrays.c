@@ -1,26 +1,30 @@
-int sum(int xs[], int len)
+int sumMatr(int xs[][2], int rows)
 {
     int sum = 0;
-    for (int i = 0; i < len; i = i + 1) {
-        sum = sum + xs[i];
+    for (int r = 0; r < rows; r = r + 1) {
+        for (int c = 0; c < 2; c = c + 1) {
+            sum = sum + xs[r][c];
+        }
     }
     return sum;
-}
-
-void add(int xs[], int ys[], int ss[], int len)
-{
-    for (int i = 0; i < len; i = i + 1) {
-        ss[i] = xs[i] + ys[i];
-    }
 }
 
 int main()
 {
     int xs[3];
-    { xs[0] = 0; xs[1] = 1; xs[2] = 2; }
-    int ys[3];
-    { ys[0] = 2; ys[1] = 1; ys[2] = 0; }
-    int ss[3];
-    add(xs, ys, ss, 3);
-    return sum(ss, 3);
+    {
+        xs[0] = 0;
+        xs[1] = 1;
+        xs[2] = 2;
+    }
+
+    int m[2][2];
+    {
+        m[0][0] = 0;
+        m[0][1] = 1;
+        m[1][0] = 2;
+        m[1][1] = 3;
+    }
+
+    return sumMatr(m, 2);
 }

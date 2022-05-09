@@ -45,8 +45,8 @@ private:
         std::any visitIntLiteral(struct AsgIntLiteral* node) override;
     };
 
-    enum class Context {
-        Load, NoLoad, Call, Undefined
+    enum class RetType {
+        Ptr, Data, CallParam, Undef
     };
 
     friend class TypeCalculator;
@@ -83,7 +83,7 @@ private:
     llvm::Function* curr_function_;
 
     TypeCalculator type_calculator_;
-    std::stack<Context> op_context_;
+    std::stack<RetType> expected_ret_;
 };
 
 

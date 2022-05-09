@@ -19,12 +19,12 @@ Type::Id TypeLibrary::get(const std::string& name) const
 
     realName = std::regex_replace(realName, rIndex, "");
 
-    std::vector<int> dimensions;
+    std::deque<int> dimensions;
     for ( auto index = std::sregex_iterator{ name.begin(), name.end(), rIndex }
         ; index != std::sregex_iterator{}
         ; index++
         ) {
-        dimensions.push_back(index->str(1).empty() ? -1 : std::stoi(index->str(1)));
+        dimensions.push_front(index->str(1).empty() ? -1 : std::stoi(index->str(1)));
     }
 
     if (named_types_.find(realName) == named_types_.end()) {
