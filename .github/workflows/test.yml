@@ -1,6 +1,16 @@
 name: Test
 on: [push]
 jobs:
+
+  list-examples:
+    runs-on: self-hosted
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - uses: actions/checkout@v2
+      - id: set-matrix
+        run: echo "::set-output name=matrix::$(find examples/ -name '*.c' | jq -R -s -c 'split("\n")[:-1]')"
+
   build:
     name: Build
     runs-on: self-hosted
@@ -13,3 +23,21 @@ jobs:
       - name: Build
         working-directory: ./build
         run: make
+      - run: cp build/tcc tcc
+
+  test:
+    needs: [list-examples, build]
+    name: Test
+    runs-on: self-hosted
+    strategy:
+      matrix:
+        example: ${{ fromJson(needs.list-examples.outputs.matrix) }}
+    steps:
+      - name: Translate to IR
+        run: ./tcc ${{ matrix.example }} -o out.ll
+      - name: Translate to ASM
+        run: llc example.ll
+      - name: Compile
+        run: gcc example.s -o example
+      - name: Run example
+        run: ./example
