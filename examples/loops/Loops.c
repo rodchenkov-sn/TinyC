@@ -22,5 +22,6 @@ int factorial2(int x)
 
 int main()
 {
-    return factorial1(5) + factorial2(5);
+    int fact5x2 = factorial1(5) + factorial2(5);
+    return fact5x2 - 240;
 }

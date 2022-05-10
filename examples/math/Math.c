@@ -18,5 +18,5 @@ int main()
     int b = 8;
     int t = equals(a, b);
     int s = sum(t, sum(1 >= 0, b));
-    return s;
+    return s - 9;
 }

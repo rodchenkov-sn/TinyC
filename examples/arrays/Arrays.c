@@ -1,3 +1,12 @@
+int sum(int xs[], int len)
+{
+    int sum = 0;
+    for (int i = 0; i < len; i = i + 1) {
+        sum = sum + xs[i];
+    }
+    return sum;
+}
+
 int sumMatr(int xs[][2], int rows)
 {
     int sum = 0;
@@ -26,5 +35,7 @@ int main()
         m[1][1] = 3;
     }
 
-    return sumMatr(m, 2);
+    int allSum = sum(xs, 3) + sumMatr(m, 2);
+
+    return allSum - 9;
 }
