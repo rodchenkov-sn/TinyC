@@ -6,9 +6,10 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
-      - name: Make build dir
-        run: mkdir build && cd build
+      - run: mkdir build
       - name: Cmake
+        working-directory: ./build
         run: cmake ..
       - name: Build
+        working-directory: ./build
         run: make
