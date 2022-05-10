@@ -78,7 +78,6 @@ private:
     std::unique_ptr<llvm::LLVMContext> context_;
     std::unique_ptr<llvm::Module> module_;
     std::unique_ptr<llvm::IRBuilder<>> builder_;
-    std::unique_ptr<llvm::legacy::FunctionPassManager> fpm_;
 
     std::deque<std::unordered_map<std::string, llvm::AllocaInst*>> scopes_;
     llvm::Function* curr_function_;

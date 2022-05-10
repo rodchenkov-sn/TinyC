@@ -1,12 +1,12 @@
 #include "IrEmitter.h"
 
+#include <llvm/Analysis/CGSCCPassManager.h>
+#include <llvm/Analysis/LoopAnalysisManager.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/PassManager.h>
 #include <llvm/IR/Verifier.h>
-#include <llvm/Transforms/InstCombine/InstCombine.h>
-#include <llvm/Transforms/Scalar.h>
-#include <llvm/Transforms/Scalar/GVN.h>
-#include <llvm/Transforms/Utils.h>
+#include <llvm/Passes/PassBuilder.h>
 
 #include "symbols/TypeLib.h"
 
@@ -16,19 +16,28 @@ std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view mo
     module_ = std::make_unique<llvm::Module>(moduleName, *context_);
     builder_ = std::make_unique<llvm::IRBuilder<>>(*context_);
 
-    fpm_ = std::make_unique<llvm::legacy::FunctionPassManager>(module_.get());
+    root->accept(this);
+
+    llvm::verifyModule(*module_, &llvm::errs());
 
     if (optimize) {
-        fpm_->add(llvm::createPromoteMemoryToRegisterPass());
-        fpm_->add(llvm::createInstructionCombiningPass());
-        fpm_->add(llvm::createReassociatePass());
-        fpm_->add(llvm::createGVNPass());
-        fpm_->add(llvm::createCFGSimplificationPass());
+        llvm::LoopAnalysisManager LAM;
+        llvm::FunctionAnalysisManager FAM;
+        llvm::CGSCCAnalysisManager CGAM;
+        llvm::ModuleAnalysisManager MAM;
+
+        llvm::PassBuilder PB;
+
+        PB.registerModuleAnalyses(MAM);
+        PB.registerCGSCCAnalyses(CGAM);
+        PB.registerFunctionAnalyses(FAM);
+        PB.registerLoopAnalyses(LAM);
+        PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
+
+        llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O2);
+
+        MPM.run(*module_, MAM);
     }
-
-    fpm_->doInitialization();
-
-    root->accept(this);
 
     std::unique_ptr<llvm::Module> r;
     r.swap(module_);
@@ -108,8 +117,6 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
     scopes_.pop_back();
     expected_ret_.pop();
     assert(expected_ret_.empty());
-
-    fpm_->run(*function);
 
     curr_function_ = nullptr;
     return {};
@@ -445,7 +452,6 @@ std::any IrEmitter::visitVariable(struct AsgVariable* node)
         alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(*context_), 0);
         std::vector<llvm::Value*> ids;
-        ids.push_back(constZero);
         auto currType = varType;
         while (currType->isArray()) {
             ids.push_back(constZero);
