@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - id: set-matrix
-        run: echo "::set-output name=matrix::$(find examples/ -name '*.c' | jq -R -s -c 'split("\n")[:-1]')"
+        run: echo "::set-output name=matrix::$(find examples -iname "*.c" -exec sh -c 'printf "%s\n" "${0%.*}"' {} ';' | jq -R -s -c 'split("\n")[:-1]')"
 
   build:
     name: Build
@@ -34,10 +34,10 @@ jobs:
         example: ${{ fromJson(needs.list-examples.outputs.matrix) }}
     steps:
       - name: Translate to IR
-        run: ./tcc ${{ matrix.example }} -o out.ll
+        run: ./tcc '${{ matrix.example }}.c'
       - name: Translate to ASM
-        run: llc example.ll
+        run: llc -opaque-pointers '${{ matrix.example }}.ll'
       - name: Compile
-        run: gcc example.s -o example
+        run: gcc '${{ matrix.example }}.s' -o ${{ matrix.example }}
       - name: Run example
-        run: ./example
+        run: ${{ matrix.example }}
