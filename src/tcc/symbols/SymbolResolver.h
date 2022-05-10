@@ -1,24 +1,24 @@
 #ifndef TINYC_SYMBOLRESOLVER_H
 #define TINYC_SYMBOLRESOLVER_H
 
-
-#include <unordered_map>
-#include <string>
-#include <stack>
-#include <vector>
-#include <sstream>
 #include <any>
+#include <sstream>
+#include <stack>
+#include <string>
+#include <unordered_map>
+#include <vector>
 
-#include "asg/AsgVisitor.h"
 #include "asg/AsgNode.h"
-
+#include "asg/AsgVisitor.h"
 #include "Type.h"
-
 
 class SymbolResolver : private AsgVisitorBase {
 public:
     bool resolve(AsgNode* root);
-    const std::vector<std::stringstream>& getErrors() const { return errors_; }
+    const std::vector<std::stringstream>& getErrors() const
+    {
+        return errors_;
+    }
 
 private:
     std::any visitStatementList(struct AsgStatementList* node) override;
@@ -26,15 +26,15 @@ private:
     std::any visitVariableDefinition(struct AsgVariableDefinition* node) override;
     std::any visitReturn(struct AsgReturn* node) override;
     std::any visitAssignment(struct AsgAssignment* node) override;
-    std::any visitConditional(struct AsgConditional *node) override;
-    std::any visitLoop(struct AsgLoop *node) override;
+    std::any visitConditional(struct AsgConditional* node) override;
+    std::any visitLoop(struct AsgLoop* node) override;
 
-    std::any visitComp(struct AsgComp *node) override;
+    std::any visitComp(struct AsgComp* node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
     std::any visitMulDiv(struct AsgMulDiv* node) override;
-    std::any visitIndexing(struct AsgIndexing *node) override;
-    std::any visitOpDeref(struct AsgOpDeref *node) override;
-    std::any visitOpRef(struct AsgOpRef *node) override;
+    std::any visitIndexing(struct AsgIndexing* node) override;
+    std::any visitOpDeref(struct AsgOpDeref* node) override;
+    std::any visitOpRef(struct AsgOpRef* node) override;
     std::any visitVariable(struct AsgVariable* node) override;
     std::any visitCall(struct AsgCall* node) override;
     std::any visitIntLiteral(struct AsgIntLiteral* node) override;
@@ -47,5 +47,4 @@ private:
     AsgFunctionDefinition* current_function_ = nullptr;
 };
 
-
-#endif //TINYC_SYMBOLRESOLVER_H
+#endif

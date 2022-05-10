@@ -1,9 +1,7 @@
 #ifndef TINYC_ASGVISITOR_H
 #define TINYC_ASGVISITOR_H
 
-
 #include <any>
-
 
 struct AsgVisitorBase {
     virtual std::any visitStatementList(struct AsgStatementList* node) = 0;
@@ -25,5 +23,4 @@ struct AsgVisitorBase {
     virtual std::any visitIntLiteral(struct AsgIntLiteral* node) = 0;
 };
 
-
-#endif // TINYC_ASGVISITOR_H
+#endif

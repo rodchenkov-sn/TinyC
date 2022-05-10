@@ -1,13 +1,11 @@
 #ifndef TINYC_FUNCTIONLIB_H
 #define TINYC_FUNCTIONLIB_H
 
-
-#include <unordered_map>
-#include <string>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
 
 #include "Function.h"
-
 
 class FunctionLibrary {
 public:
@@ -22,5 +20,4 @@ private:
     std::unordered_map<std::string, Function> named_functions_;
 };
 
-
-#endif //TINYC_FUNCTIONLIB_H
+#endif

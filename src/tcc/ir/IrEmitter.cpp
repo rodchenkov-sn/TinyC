@@ -1,15 +1,14 @@
 #include "IrEmitter.h"
 
-#include <llvm/Transforms/Utils.h>
-#include <llvm/Transforms/Scalar.h>
-#include <llvm/Transforms/Scalar/GVN.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Transforms/InstCombine/InstCombine.h>
 #include <llvm/IR/Instructions.h>
 #include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Verifier.h>
+#include <llvm/Transforms/InstCombine/InstCombine.h>
+#include <llvm/Transforms/Scalar.h>
+#include <llvm/Transforms/Scalar/GVN.h>
+#include <llvm/Transforms/Utils.h>
 
 #include "symbols/TypeLib.h"
-
 
 std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view moduleName, bool optimize)
 {
@@ -37,7 +36,6 @@ std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view mo
     return r;
 }
 
-
 std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 {
     if (node->parent) {
@@ -54,7 +52,6 @@ std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 
     return {};
 }
-
 
 std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 {
@@ -86,7 +83,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     {
         auto i = 0;
-        for (auto& param: function->args()) {
+        for (auto& param : function->args()) {
             auto& paramName = node->parameters[i++].name;
 
             param.setName(paramName + "_arg");
@@ -94,7 +91,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
             llvm::AllocaInst* alloca = makeAlloca(paramName, param.getType());
             builder_->CreateStore(&param, alloca);
 
-            scopes_.back().insert({ paramName, alloca });
+            scopes_.back().insert({paramName, alloca});
         }
     }
 
@@ -118,14 +115,13 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
     return {};
 }
 
-
 std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
     auto varType = node->list->localVariables[node->name];
 
     llvm::AllocaInst* alloca = makeAlloca(node->name, varType->getLLVMType(*context_, curr_function_->getAddressSpace()));
 
-    scopes_.back().insert({ node->name, alloca });
+    scopes_.back().insert({node->name, alloca});
 
     if (node->value) {
         expected_ret_.push(RetType::Data);
@@ -140,7 +136,6 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 
     return (llvm::Value*)builder_->CreateLoad(varType->getLLVMType(*context_, curr_function_->getAddressSpace()), alloca);
 }
-
 
 std::any IrEmitter::visitReturn(struct AsgReturn* node)
 {
@@ -164,7 +159,6 @@ std::any IrEmitter::visitReturn(struct AsgReturn* node)
     return {};
 }
 
-
 std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
 {
     expected_ret_.push(RetType::Data);
@@ -181,13 +175,12 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
     builder_->CreateStore(value, assignable);
 
     if (expected_ret_.top() == RetType::Data) {
-        return (llvm::Value*) builder_->CreateLoad(
-                assignableType->getLLVMType(*context_, curr_function_->getAddressSpace()), assignable
+        return (llvm::Value*)builder_->CreateLoad(
+            assignableType->getLLVMType(*context_, curr_function_->getAddressSpace()), assignable
         );
     }
     return assignable;
 }
-
 
 std::any IrEmitter::visitConditional(struct AsgConditional* node)
 {
@@ -247,7 +240,6 @@ std::any IrEmitter::visitConditional(struct AsgConditional* node)
     return {};
 }
 
-
 std::any IrEmitter::visitLoop(struct AsgLoop* node)
 {
     llvm::BasicBlock* condBlock = llvm::BasicBlock::Create(*context_, "loop_cond", curr_function_);
@@ -274,7 +266,6 @@ std::any IrEmitter::visitLoop(struct AsgLoop* node)
     return {};
 }
 
-
 std::any IrEmitter::visitComp(struct AsgComp* node)
 {
     expected_ret_.push(RetType::Data);
@@ -285,30 +276,29 @@ std::any IrEmitter::visitComp(struct AsgComp* node)
     llvm::Value* i1Val = nullptr;
 
     switch (node->op) {
-        case AsgComp::Operator::Equals:
-            i1Val = builder_->CreateICmpEQ(lhs, rhs);
-            break;
-        case AsgComp::Operator::NotEquals:
-            i1Val = builder_->CreateICmpNE(lhs, rhs);
-            break;
-        case AsgComp::Operator::Less:
-            i1Val = builder_->CreateICmpSLT(lhs, rhs);
-            break;
-        case AsgComp::Operator::LessEquals:
-            i1Val = builder_->CreateICmpSLE(lhs, rhs);
-            break;
-        case AsgComp::Operator::Greater:
-            i1Val = builder_->CreateICmpSGT(lhs, rhs);
-            break;
-        case AsgComp::Operator::GreaterEquals:
-            i1Val = builder_->CreateICmpSGE(lhs, rhs);
-            break;
+    case AsgComp::Operator::Equals:
+        i1Val = builder_->CreateICmpEQ(lhs, rhs);
+        break;
+    case AsgComp::Operator::NotEquals:
+        i1Val = builder_->CreateICmpNE(lhs, rhs);
+        break;
+    case AsgComp::Operator::Less:
+        i1Val = builder_->CreateICmpSLT(lhs, rhs);
+        break;
+    case AsgComp::Operator::LessEquals:
+        i1Val = builder_->CreateICmpSLE(lhs, rhs);
+        break;
+    case AsgComp::Operator::Greater:
+        i1Val = builder_->CreateICmpSGT(lhs, rhs);
+        break;
+    case AsgComp::Operator::GreaterEquals:
+        i1Val = builder_->CreateICmpSGE(lhs, rhs);
+        break;
     }
 
     assert(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     return builder_->CreateIntCast(i1Val, llvm::Type::getInt32Ty(*context_), false);
 }
-
 
 std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 {
@@ -325,7 +315,6 @@ std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
     return (llvm::Value*)last;
 }
 
-
 std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
 {
     assert(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
@@ -340,7 +329,6 @@ std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
     }
     return (llvm::Value*)last;
 }
-
 
 std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
 {
@@ -398,14 +386,13 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
     expected_ret_.pop();
 
     if (expected_ret_.top() == RetType::Data) {
-        return (llvm::Value*) builder_->CreateLoad(
-                indexedType->getLLVMType(*context_, curr_function_->getAddressSpace()),
-                lastGEP
+        return (llvm::Value*)builder_->CreateLoad(
+            indexedType->getLLVMType(*context_, curr_function_->getAddressSpace()),
+            lastGEP
         );
     }
     return (llvm::Value*)lastGEP;
 }
-
 
 std::any IrEmitter::visitOpDeref(struct AsgOpDeref* node)
 {
@@ -435,7 +422,6 @@ std::any IrEmitter::visitOpDeref(struct AsgOpDeref* node)
     return lastLoad;
 }
 
-
 std::any IrEmitter::visitOpRef(struct AsgOpRef* node)
 {
     llvm::Value* val = nullptr;
@@ -450,13 +436,11 @@ std::any IrEmitter::visitOpRef(struct AsgOpRef* node)
     return val;
 }
 
-
 std::any IrEmitter::visitVariable(struct AsgVariable* node)
 {
     if (expected_ret_.top() == RetType::Ptr) {
         return (llvm::Value*)findAlloca(node->name);
-    } else if ( const auto varType = findVarType(node->name, node)
-              ; varType->isArray() && expected_ret_.top() == RetType::CallParam) {
+    } else if (const auto varType = findVarType(node->name, node); varType->isArray() && expected_ret_.top() == RetType::CallParam) {
         auto* alloca = findAlloca(node->name);
         alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(*context_), 0);
@@ -479,7 +463,6 @@ std::any IrEmitter::visitVariable(struct AsgVariable* node)
     );
 }
 
-
 std::any IrEmitter::visitCall(struct AsgCall* node)
 {
     expected_ret_.push(RetType::CallParam);
@@ -494,12 +477,10 @@ std::any IrEmitter::visitCall(struct AsgCall* node)
     return (llvm::Value*)builder_->CreateCall(callee, args);
 }
 
-
 std::any IrEmitter::visitIntLiteral(struct AsgIntLiteral* node)
 {
     return (llvm::Value*)llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), node->value);
 }
-
 
 llvm::AllocaInst* IrEmitter::findAlloca(const std::string& name) const
 {
@@ -511,17 +492,14 @@ llvm::AllocaInst* IrEmitter::findAlloca(const std::string& name) const
     return nullptr;
 }
 
-
 llvm::AllocaInst* IrEmitter::makeAlloca(const std::string& name, llvm::Type* type)
 {
     llvm::IRBuilder<> builder{
         &curr_function_->getEntryBlock(),
-        curr_function_->getEntryBlock().begin()
-    };
+        curr_function_->getEntryBlock().begin()};
 
     return builder.CreateAlloca(type, nullptr, name);
 }
-
 
 Type::Id IrEmitter::findVarType(const std::string& name, const AsgNode* startNode)
 {
@@ -535,48 +513,40 @@ Type::Id IrEmitter::findVarType(const std::string& name, const AsgNode* startNod
     return nullptr;
 }
 
-
 std::any IrEmitter::TypeCalculator::visitStatementList(struct AsgStatementList* node)
 {
     return Type::invalid();
 }
-
 
 std::any IrEmitter::TypeCalculator::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 {
     return Type::invalid();
 }
 
-
 std::any IrEmitter::TypeCalculator::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
     return findVarType(node->name, node);
 }
-
 
 std::any IrEmitter::TypeCalculator::visitReturn(struct AsgReturn* node)
 {
     return Type::invalid();
 }
 
-
 std::any IrEmitter::TypeCalculator::visitAssignment(struct AsgAssignment* node)
 {
     return node->assignable->accept(this);
 }
-
 
 std::any IrEmitter::TypeCalculator::visitConditional(struct AsgConditional* node)
 {
     return Type::invalid();
 }
 
-
 std::any IrEmitter::TypeCalculator::visitLoop(struct AsgLoop* node)
 {
     return Type::invalid();
 }
-
 
 std::any IrEmitter::TypeCalculator::visitComp(struct AsgComp* node)
 {
@@ -587,7 +557,6 @@ std::any IrEmitter::TypeCalculator::visitComp(struct AsgComp* node)
     }
     return Type::invalid();
 }
-
 
 std::any IrEmitter::TypeCalculator::visitAddSub(struct AsgAddSub* node)
 {
@@ -600,7 +569,6 @@ std::any IrEmitter::TypeCalculator::visitAddSub(struct AsgAddSub* node)
     return TypeLibrary::inst().get("int");
 }
 
-
 std::any IrEmitter::TypeCalculator::visitMulDiv(struct AsgMulDiv* node)
 {
     for (auto& sub : node->subexpressions) {
@@ -611,7 +579,6 @@ std::any IrEmitter::TypeCalculator::visitMulDiv(struct AsgMulDiv* node)
     }
     return TypeLibrary::inst().get("int");
 }
-
 
 std::any IrEmitter::TypeCalculator::visitIndexing(struct AsgIndexing* node)
 {
@@ -641,7 +608,6 @@ std::any IrEmitter::TypeCalculator::visitIndexing(struct AsgIndexing* node)
     return indexedType;
 }
 
-
 std::any IrEmitter::TypeCalculator::visitOpDeref(struct AsgOpDeref* node)
 {
     auto derefCount = node->derefCount;
@@ -661,7 +627,6 @@ std::any IrEmitter::TypeCalculator::visitOpDeref(struct AsgOpDeref* node)
     return expType;
 }
 
-
 std::any IrEmitter::TypeCalculator::visitOpRef(struct AsgOpRef* node)
 {
     auto expType = std::any_cast<Type::Id>(node->value->accept(this));
@@ -673,24 +638,20 @@ std::any IrEmitter::TypeCalculator::visitOpRef(struct AsgOpRef* node)
     return expType->getRef();
 }
 
-
 std::any IrEmitter::TypeCalculator::visitVariable(struct AsgVariable* node)
 {
     return IrEmitter::findVarType(node->name, node);
 }
-
 
 std::any IrEmitter::TypeCalculator::visitCall(struct AsgCall* node)
 {
     return node->callee->returnType;
 }
 
-
 std::any IrEmitter::TypeCalculator::visitIntLiteral(struct AsgIntLiteral* node)
 {
     return TypeLibrary::inst().get("int");
 }
-
 
 Type::Id IrEmitter::TypeCalculator::calculate(AsgNode* node)
 {

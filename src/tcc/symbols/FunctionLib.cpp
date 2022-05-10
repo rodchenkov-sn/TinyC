@@ -1,8 +1,6 @@
 #include "FunctionLib.h"
 
-
 static FunctionLibrary* instance = nullptr;
-
 
 FunctionLibrary& FunctionLibrary::inst()
 {
@@ -12,7 +10,6 @@ FunctionLibrary& FunctionLibrary::inst()
     return *instance;
 }
 
-
 FunctionId FunctionLibrary::get(const std::string& name) const
 {
     if (named_functions_.find(name) != named_functions_.end()) {
@@ -21,12 +18,11 @@ FunctionId FunctionLibrary::get(const std::string& name) const
     return nullptr;
 }
 
-
 FunctionId FunctionLibrary::add(const Function& function)
 {
     if (named_functions_.find(function.name) != named_functions_.end()) {
         return nullptr;
     }
-    named_functions_.insert({ function.name, function });
+    named_functions_.insert({function.name, function});
     return get(function.name);
 }

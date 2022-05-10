@@ -1,35 +1,29 @@
 #include <iostream>
 
 #include "argparse/argparse.hpp"
-
+#include "asg/AsgNode.h"
+#include "ast/AstVisitor.h"
+#include "ir/IrEmitter.h"
+#include "symbols/SymbolResolver.h"
 #include "TinyCLexer.h"
 #include "TinyCParser.h"
 
-#include "ast/AstVisitor.h"
-#include "asg/AsgNode.h"
-#include "symbols/SymbolResolver.h"
-#include "ir/IrEmitter.h"
-
-
 int main(int argc, char** argv)
 {
-    argparse::ArgumentParser program{ "tcc" };
+    argparse::ArgumentParser program{"tcc"};
 
     program.add_argument("input")
         .help("specify the input file")
-        .required()
-        ;
+        .required();
 
     program.add_argument("-o", "--output")
         .help("specify the output file")
-        .default_value(std::string{})
-        ;
+        .default_value(std::string{});
 
     program.add_argument("--no-opt")
         .help("disable optimizations")
         .default_value(false)
-        .implicit_value(true)
-        ;
+        .implicit_value(true);
 
     try {
         program.parse_args(argc, argv);
@@ -48,10 +42,10 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    antlr4::ANTLRInputStream inputStream{ file };
-    TinyCLexer lexer{ &inputStream };
-    antlr4::CommonTokenStream tokens{ &lexer };
-    TinyCParser parser{ &tokens };
+    antlr4::ANTLRInputStream inputStream{file};
+    TinyCLexer lexer{&inputStream};
+    antlr4::CommonTokenStream tokens{&lexer};
+    TinyCParser parser{&tokens};
     TinyCParser::TranslationUnitContext* context = parser.translationUnit();
 
     AstVisitor visitor;
@@ -91,13 +85,14 @@ int main(int argc, char** argv)
     auto outputName = program.get<std::string>("-o");
     if (outputName.empty()) {
         outputName = inputFileName.erase(
-            inputFileName.find_last_of('.'),
-            inputFileName.size()
-        ) + ".ll";
+                         inputFileName.find_last_of('.'),
+                         inputFileName.size()
+                     )
+                   + ".ll";
     }
 
     std::error_code ec;
-    llvm::raw_fd_ostream ostream{ outputName, ec };
+    llvm::raw_fd_ostream ostream{outputName, ec};
 
     if (ec) {
         std::cerr << ec.message();

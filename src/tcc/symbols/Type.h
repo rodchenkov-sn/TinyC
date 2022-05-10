@@ -1,18 +1,19 @@
 #ifndef TINYC_TCTYPE_H
 #define TINYC_TCTYPE_H
 
-
 #include <functional>
 #include <utility>
 
-#include <llvm/IR/Type.h>
 #include <llvm/IR/DerivedTypes.h>
-
+#include <llvm/IR/Type.h>
 
 struct Type {
     using Id = std::shared_ptr<const Type>;
 
-    static Id invalid() { return nullptr; };
+    static Id invalid()
+    {
+        return nullptr;
+    };
 
     virtual Id getRef() const = 0;
     virtual Id getArray(int size) const = 0;
@@ -33,8 +34,8 @@ struct Type {
     }
 };
 
-
-class ArrayType : public Type, public std::enable_shared_from_this<ArrayType> {
+class ArrayType : public Type
+    , public std::enable_shared_from_this<ArrayType> {
 public:
     ArrayType(Id underlying, int size);
 
@@ -50,16 +51,16 @@ public:
 
     Id getNamed() const override;
 
-    llvm::Type* getLLVMType(llvm::LLVMContext &ctx, unsigned int addrSpace) const override;
-    llvm::Type* getLLVMParamType(llvm::LLVMContext &ctx, unsigned int addrSpace) const override;
+    llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
+    llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
 private:
     Id underlying_;
     int size_;
 };
 
-
-class PtrType : public Type, public std::enable_shared_from_this<PtrType> {
+class PtrType : public Type
+    , public std::enable_shared_from_this<PtrType> {
 public:
     explicit PtrType(Id underlying);
 
@@ -81,8 +82,8 @@ private:
     Id underlying_;
 };
 
-
-class BaseType : public Type, public std::enable_shared_from_this<BaseType> {
+class BaseType : public Type
+    , public std::enable_shared_from_this<BaseType> {
     using TypeGetter = std::function<llvm::Type*(llvm::LLVMContext&)>;
 
 public:
@@ -106,5 +107,4 @@ private:
     TypeGetter type_getter_;
 };
 
-
-#endif // TINYC_TCTYPE_H
+#endif

@@ -1,11 +1,10 @@
 #ifndef TINYC_TCTYPELIB_H
 #define TINYC_TCTYPELIB_H
 
-#include <unordered_map>
 #include <string>
+#include <unordered_map>
 
 #include "Type.h"
-
 
 class TypeLibrary {
 public:
@@ -19,4 +18,4 @@ private:
     std::unordered_map<std::string, Type::Id> named_types_;
 };
 
-#endif //TINYC_TCTYPELIB_H
+#endif

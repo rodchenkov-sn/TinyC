@@ -5,8 +5,7 @@
 
 #include "asg/AsgNode.h"
 
-
-std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext *ctx)
+std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx)
 {
     auto node = std::make_unique<AsgStatementList>();
     for (auto* functionCtx : ctx->function()) {
@@ -16,8 +15,7 @@ std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext *c
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitFunction(TinyCParser::FunctionContext *ctx)
+std::any AstVisitor::visitFunction(TinyCParser::FunctionContext* ctx)
 {
     auto node = std::make_unique<AsgFunctionDefinition>();
     node->returnType = ctx->type()->typeName()->getText()
@@ -25,20 +23,19 @@ std::any AstVisitor::visitFunction(TinyCParser::FunctionContext *ctx)
     node->name = ctx->functionName()->getText();
 
     if (auto* params = ctx->parameters()) {
-        for (auto* paramCtx : params->parameter())
-        {
+        for (auto* paramCtx : params->parameter()) {
             const auto& indexes = paramCtx->constantIndexing();
 
             AsgFunctionDefinition::Parameter p;
             p.type = paramCtx->type()->typeName()->getText()
                    + std::string(paramCtx->type()->ASTERISK().size(), '*')
                    + std::accumulate(
-                        indexes.begin(),
-                        indexes.end(),
-                        std::string{},
-                        [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
-                            return accum + indexing->getText();
-                        }
+                         indexes.begin(),
+                         indexes.end(),
+                         std::string{},
+                         [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
+                             return accum + indexing->getText();
+                         }
                    );
             p.name = paramCtx->variableName()->getText();
 
@@ -53,7 +50,6 @@ std::any AstVisitor::visitFunction(TinyCParser::FunctionContext *ctx)
 
     return (AsgNode*)node.release();
 }
-
 
 std::any AstVisitor::visitStatements(TinyCParser::StatementsContext* ctx)
 {
@@ -74,7 +70,6 @@ std::any AstVisitor::visitStatements(TinyCParser::StatementsContext* ctx)
     return (AsgNode*)node.release();
 }
 
-
 std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
 {
     if (ctx->expression()) {
@@ -94,7 +89,6 @@ std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
     }
     return visitStatements(ctx->statements());
 }
-
 
 std::any AstVisitor::visitIfStatement(TinyCParser::IfStatementContext* ctx)
 {
@@ -121,8 +115,7 @@ std::any AstVisitor::visitIfStatement(TinyCParser::IfStatementContext* ctx)
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext *ctx)
+std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext* ctx)
 {
     auto node = std::make_unique<AsgVariableDefinition>();
 
@@ -131,12 +124,12 @@ std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext *ctx)
     node->type = ctx->type()->typeName()->getText()
                + std::string(ctx->type()->ASTERISK().size(), '*')
                + std::accumulate(
-                   indexes.begin(),
-                   indexes.end(),
-                   std::string{},
-                   [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
-                       return accum + indexing->getText();
-                   }
+                     indexes.begin(),
+                     indexes.end(),
+                     std::string{},
+                     [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
+                         return accum + indexing->getText();
+                     }
                );
 
     node->name = ctx->variableName()->getText();
@@ -149,8 +142,7 @@ std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext *ctx)
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitAssignment(TinyCParser::AssignmentContext *ctx)
+std::any AstVisitor::visitAssignment(TinyCParser::AssignmentContext* ctx)
 {
     auto node = std::make_unique<AsgAssignment>();
 
@@ -161,7 +153,6 @@ std::any AstVisitor::visitAssignment(TinyCParser::AssignmentContext *ctx)
 
     return (AsgNode*)node.release();
 }
-
 
 std::any AstVisitor::visitAssignable(TinyCParser::AssignableContext* ctx)
 {
@@ -194,8 +185,7 @@ std::any AstVisitor::visitAssignable(TinyCParser::AssignableContext* ctx)
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *ctx)
+std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext* ctx)
 {
     auto node = std::make_unique<AsgReturn>();
 
@@ -207,7 +197,6 @@ std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext *c
     return node.release();
 }
 
-
 std::any AstVisitor::visitWhileStatement(TinyCParser::WhileStatementContext* ctx)
 {
     auto node = std::make_unique<AsgLoop>();
@@ -217,7 +206,6 @@ std::any AstVisitor::visitWhileStatement(TinyCParser::WhileStatementContext* ctx
 
     return (AsgNode*)node.release();
 }
-
 
 std::any AstVisitor::visitForStatement(TinyCParser::ForStatementContext* ctx)
 {
@@ -236,7 +224,6 @@ std::any AstVisitor::visitForStatement(TinyCParser::ForStatementContext* ctx)
     }
     return (AsgNode*)node.release();
 }
-
 
 std::any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx)
 {
@@ -270,8 +257,7 @@ std::any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext *ctx)
+std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext* ctx)
 {
     if (ctx->mulDivExpr().size() == 1) {
         return visit(ctx->mulDivExpr(0));
@@ -296,7 +282,7 @@ std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext *ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext *ctx)
+std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext* ctx)
 {
     if (ctx->operandDereference().size() == 1) {
         return visit(ctx->operandDereference(0));
@@ -321,7 +307,6 @@ std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext *ctx)
     return (AsgNode*)node.release();
 }
 
-
 std::any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx)
 {
     if (ctx->indexing().empty()) {
@@ -339,7 +324,6 @@ std::any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx
     return (AsgNode*)node.release();
 }
 
-
 std::any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx)
 {
     if (ctx->ASTERISK().empty()) {
@@ -352,7 +336,6 @@ std::any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceCont
     return (AsgNode*)node.release();
 }
 
-
 std::any AstVisitor::visitValueReference(TinyCParser::ValueReferenceContext* ctx)
 {
     if (!ctx->AMPERSAND()) {
@@ -364,8 +347,7 @@ std::any AstVisitor::visitValueReference(TinyCParser::ValueReferenceContext* ctx
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitCallExpr(TinyCParser::CallExprContext *ctx)
+std::any AstVisitor::visitCallExpr(TinyCParser::CallExprContext* ctx)
 {
     auto node = std::make_unique<AsgCall>();
 
@@ -381,8 +363,7 @@ std::any AstVisitor::visitCallExpr(TinyCParser::CallExprContext *ctx)
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitLiteral(TinyCParser::LiteralContext *ctx)
+std::any AstVisitor::visitLiteral(TinyCParser::LiteralContext* ctx)
 {
     auto node = std::make_unique<AsgIntLiteral>();
 
@@ -391,8 +372,7 @@ std::any AstVisitor::visitLiteral(TinyCParser::LiteralContext *ctx)
     return (AsgNode*)node.release();
 }
 
-
-std::any AstVisitor::visitVariableName(TinyCParser::VariableNameContext *ctx)
+std::any AstVisitor::visitVariableName(TinyCParser::VariableNameContext* ctx)
 {
     auto node = std::make_unique<AsgVariable>();
 

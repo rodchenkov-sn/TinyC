@@ -4,13 +4,11 @@
 
 #include <llvm/IR/DerivedTypes.h>
 
-
 static TypeLibrary* instance = nullptr;
-
 
 Type::Id TypeLibrary::get(const std::string& name) const
 {
-    static const std::regex rIndex{ R"(\[(\d*)\])" };
+    static const std::regex rIndex{R"(\[(\d*)\])"};
 
     auto realName = name;
     realName.erase(std::remove(realName.begin(), realName.end(), '*'), realName.end());
@@ -20,10 +18,7 @@ Type::Id TypeLibrary::get(const std::string& name) const
     realName = std::regex_replace(realName, rIndex, "");
 
     std::deque<int> dimensions;
-    for ( auto index = std::sregex_iterator{ name.begin(), name.end(), rIndex }
-        ; index != std::sregex_iterator{}
-        ; index++
-        ) {
+    for (auto index = std::sregex_iterator{name.begin(), name.end(), rIndex}; index != std::sregex_iterator{}; index++) {
         dimensions.push_front(index->str(1).empty() ? -1 : std::stoi(index->str(1)));
     }
 
@@ -44,7 +39,6 @@ Type::Id TypeLibrary::get(const std::string& name) const
     return type;
 }
 
-
 TypeLibrary& TypeLibrary::inst()
 {
     if (!instance) {
@@ -53,21 +47,7 @@ TypeLibrary& TypeLibrary::inst()
     return *instance;
 }
 
-
 TypeLibrary::TypeLibrary()
 {
-    named_types_.insert({
-        {
-            "int",
-            std::make_shared<BaseType>(
-                    [](auto& ctx) { return llvm::Type::getInt32Ty(ctx); }
-            )
-        },
-        {
-            "void",
-            std::make_shared<BaseType>(
-                [](auto& ctx) { return llvm::Type::getVoidTy(ctx); }
-            )
-        }
-    });
+    named_types_.insert({{"int", std::make_shared<BaseType>([](auto& ctx) { return llvm::Type::getInt32Ty(ctx); })}, {"void", std::make_shared<BaseType>([](auto& ctx) { return llvm::Type::getVoidTy(ctx); })}});
 }

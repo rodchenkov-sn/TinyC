@@ -1,17 +1,14 @@
 #include "SymbolResolver.h"
 
 #include "asg/AsgNode.h"
-
-#include "TypeLib.h"
 #include "FunctionLib.h"
-
+#include "TypeLib.h"
 
 bool SymbolResolver::resolve(AsgNode* root)
 {
     root->accept(this);
     return errors_.empty();
 }
-
 
 std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
 {
@@ -30,7 +27,6 @@ std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 {
     Function function;
@@ -44,7 +40,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
 
     function.returnType = retType;
 
-    auto* topBlock = (AsgStatementList*) node->body.get();
+    auto* topBlock = (AsgStatementList*)node->body.get();
 
     for (auto& parameter : node->parameters) {
         auto type = TypeLibrary::inst().get(parameter.type);
@@ -53,7 +49,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
         }
         function.parameters.push_back(type);
 
-        topBlock->localVariables.insert({ parameter.name, type });
+        topBlock->localVariables.insert({parameter.name, type});
     }
 
     node->type = FunctionLibrary::inst().add(function);
@@ -72,7 +68,6 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     return {};
 }
 
-
 std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
     node->function = current_function_;
@@ -87,7 +82,7 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
         errors_.emplace_back() << "undefined type " << node->type << " in variable " << node->name << " definition";
     }
 
-    top_scope_->localVariables.insert({ node->name, type });
+    top_scope_->localVariables.insert({node->name, type});
 
     if (node->value) {
         node->value->accept(this);
@@ -96,7 +91,6 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
 
     return {};
 }
-
 
 std::any SymbolResolver::visitReturn(struct AsgReturn* node)
 {
@@ -109,7 +103,6 @@ std::any SymbolResolver::visitReturn(struct AsgReturn* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
 {
     node->function = current_function_;
@@ -121,7 +114,6 @@ std::any SymbolResolver::visitAssignment(struct AsgAssignment* node)
 
     return {};
 }
-
 
 std::any SymbolResolver::visitConditional(struct AsgConditional* node)
 {
@@ -142,7 +134,6 @@ std::any SymbolResolver::visitConditional(struct AsgConditional* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitLoop(struct AsgLoop* node)
 {
     node->function = current_function_;
@@ -152,7 +143,6 @@ std::any SymbolResolver::visitLoop(struct AsgLoop* node)
     node->body->accept(this);
     return {};
 }
-
 
 std::any SymbolResolver::visitComp(struct AsgComp* node)
 {
@@ -168,7 +158,6 @@ std::any SymbolResolver::visitComp(struct AsgComp* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitAddSub(struct AsgAddSub* node)
 {
     node->function = current_function_;
@@ -182,7 +171,6 @@ std::any SymbolResolver::visitAddSub(struct AsgAddSub* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
 {
     node->function = current_function_;
@@ -195,7 +183,6 @@ std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
 
     return {};
 }
-
 
 std::any SymbolResolver::visitIndexing(struct AsgIndexing* node)
 {
@@ -211,7 +198,6 @@ std::any SymbolResolver::visitIndexing(struct AsgIndexing* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitOpDeref(struct AsgOpDeref* node)
 {
     node->function = current_function_;
@@ -220,7 +206,6 @@ std::any SymbolResolver::visitOpDeref(struct AsgOpDeref* node)
     return node->expression->accept(this);
 }
 
-
 std::any SymbolResolver::visitOpRef(struct AsgOpRef* node)
 {
     node->function = current_function_;
@@ -228,7 +213,6 @@ std::any SymbolResolver::visitOpRef(struct AsgOpRef* node)
 
     return node->value->accept(this);
 }
-
 
 std::any SymbolResolver::visitVariable(struct AsgVariable* node)
 {
@@ -241,7 +225,6 @@ std::any SymbolResolver::visitVariable(struct AsgVariable* node)
 
     return {};
 }
-
 
 std::any SymbolResolver::visitCall(struct AsgCall* node)
 {
@@ -264,7 +247,6 @@ std::any SymbolResolver::visitCall(struct AsgCall* node)
     return {};
 }
 
-
 std::any SymbolResolver::visitIntLiteral(struct AsgIntLiteral* node)
 {
     node->function = current_function_;
@@ -272,7 +254,6 @@ std::any SymbolResolver::visitIntLiteral(struct AsgIntLiteral* node)
 
     return {};
 }
-
 
 Type::Id SymbolResolver::findVarType(const std::string& name) const
 {
