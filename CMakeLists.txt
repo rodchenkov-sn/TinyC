@@ -39,6 +39,8 @@ llvm_map_components_to_libnames(llvm_libs
         native
         )
 
+include_directories("${PROJECT_SOURCE_DIR}/vendor/argparse/include")
+
 add_executable(tcc
         ${tcc_sources}
         ${grammar_generated_sources}
