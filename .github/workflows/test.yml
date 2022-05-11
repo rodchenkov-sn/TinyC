@@ -7,7 +7,9 @@ jobs:
     runs-on: self-hosted
     steps:
       - uses: actions/checkout@v2
-      - run: clang-format --dry-run --Werror --style=file src/**/*.cpp src/**/*.h
+      - run: shopt -s globstar
+      - name: clang-format check
+        run: clang-format --dry-run --Werror --style=file src/**/*.cpp src/**/*.h
 
   list-examples:
     needs: check-format
