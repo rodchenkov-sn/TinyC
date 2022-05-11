@@ -27,6 +27,7 @@ jobs:
         with:
           name: tcc-exe
           path: build/tcc
+          retention-days: 1
 
   test:
     needs: [list-examples, build]
@@ -40,7 +41,7 @@ jobs:
       - uses: actions/download-artifact@v2
         with:
           name: tcc-exe
-      - run: ls
+      - run: chmod +x ./tcc
       - name: Translate to IR
         run: ./tcc '${{ matrix.example }}.c'
       - name: Translate to ASM
