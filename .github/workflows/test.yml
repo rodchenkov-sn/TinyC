@@ -2,14 +2,6 @@ name: Test
 on: [push]
 jobs:
 
-  check-format:
-    name: Check format
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v2
-      - name: clang-format check
-        run: clang-format --dry-run --Werror --style=file 'src/**/*.cpp' 'src/**/*.h'
-
   list-examples:
     needs: check-format
     runs-on: self-hosted
@@ -60,3 +52,21 @@ jobs:
         run: gcc '${{ matrix.example }}.s' -o ${{ matrix.example }}
       - name: Run example
         run: ${{ matrix.example }}
+
+  format:
+    needs: test
+    name: Format
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - uses: DoozyX/clang-format-lint-action@v0.13
+        with:
+          source: './src'
+          clangFormatVersion: 13
+          inplace: True
+      - uses: EndBug/add-and-commit@v9
+        with:
+          add: 'src'
+          default_author: github_actions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
