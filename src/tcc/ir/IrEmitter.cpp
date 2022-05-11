@@ -6,6 +6,7 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/PassManager.h>
 #include <llvm/IR/Verifier.h>
+#include <llvm/Passes/OptimizationLevel.h>
 #include <llvm/Passes/PassBuilder.h>
 
 #include "symbols/TypeLib.h"
@@ -34,7 +35,7 @@ std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view mo
         PB.registerLoopAnalyses(LAM);
         PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
 
-        llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O2);
+        llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
 
         MPM.run(*module_, MAM);
     }
