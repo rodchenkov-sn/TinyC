@@ -1,6 +1,6 @@
 BasedOnStyle: LLVM
 AccessModifierOffset: -4
-AlignAfterOpenBracket: BlockIndent
+AlignAfterOpenBracket: AlwaysBreak
 AlignConsecutiveAssignments: None
 AlignOperands: AlignAfterOperator
 AllowAllArgumentsOnNextLine: false
