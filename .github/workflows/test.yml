@@ -2,7 +2,15 @@ name: Test
 on: [push]
 jobs:
 
+  check-format:
+    name: Check format
+    runs-on: self-hosted
+    steps:
+      - uses: actions/checkout@v2
+      - run: clang-format --dry-run --Werror --style=file src/**/*.cpp src/**/*.h
+
   list-examples:
+    needs: check-format
     runs-on: self-hosted
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -12,6 +20,7 @@ jobs:
         run: echo "::set-output name=matrix::$(find examples -iname "*.c" -exec sh -c 'printf "%s\n" "${0%.*}"' {} ';' | jq -R -s -c 'split("\n")[:-1]')"
 
   build:
+    needs: check-format
     name: Build
     runs-on: self-hosted
     steps:
