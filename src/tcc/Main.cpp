@@ -79,15 +79,13 @@ int main(int argc, char** argv)
     auto module = emitter.emit(
         root,
         moduleName,
-        !program.get<bool>("--no-opt")
-    );
+        !program.get<bool>("--no-opt"));
 
     auto outputName = program.get<std::string>("-o");
     if (outputName.empty()) {
         outputName = inputFileName.erase(
                          inputFileName.find_last_of('.'),
-                         inputFileName.size()
-                     )
+                         inputFileName.size())
                    + ".ll";
     }
 

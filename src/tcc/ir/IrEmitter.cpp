@@ -76,15 +76,13 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
     llvm::FunctionType* functionType = llvm::FunctionType::get(
         node->type->returnType->getLLVMType(*context_, 0),
         paramTypes,
-        false
-    );
+        false);
 
     llvm::Function* function = llvm::Function::Create(
         functionType,
         llvm::Function::ExternalLinkage,
         node->name,
-        module_.get()
-    );
+        module_.get());
 
     curr_function_ = function;
 
@@ -184,8 +182,7 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
 
     if (expected_ret_.top() == RetType::Data) {
         return (llvm::Value*)builder_->CreateLoad(
-            assignableType->getLLVMType(*context_, curr_function_->getAddressSpace()), assignable
-        );
+            assignableType->getLLVMType(*context_, curr_function_->getAddressSpace()), assignable);
     }
     return assignable;
 }
@@ -363,17 +360,14 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
             indexedType->getIndexed()->getLLVMType(*context_, curr_function_->getAddressSpace()),
             builder_->CreateLoad(
                 llvm::PointerType::get(*context_, curr_function_->getAddressSpace()),
-                indexed
-            ),
-            std::any_cast<llvm::Value*>(node->indexes[0]->accept(this))
-        );
+                indexed),
+            std::any_cast<llvm::Value*>(node->indexes[0]->accept(this)));
     } else {
         currGepIdx[1] = std::any_cast<llvm::Value*>(node->indexes[0]->accept(this));
         lastGEP = builder_->CreateInBoundsGEP(
             indexedType->getLLVMType(*context_, curr_function_->getAddressSpace()),
             indexed,
-            currGepIdx
-        );
+            currGepIdx);
     }
 
     indexedType = indexedType->getIndexed();
@@ -386,8 +380,7 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
         lastGEP = builder_->CreateGEP(
             indexedType->getLLVMType(*context_, curr_function_->getAddressSpace()),
             lastGEP,
-            currGepIdx
-        );
+            currGepIdx);
         indexedType = indexedType->getIndexed();
     }
 
@@ -396,8 +389,7 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
     if (expected_ret_.top() == RetType::Data) {
         return (llvm::Value*)builder_->CreateLoad(
             indexedType->getLLVMType(*context_, curr_function_->getAddressSpace()),
-            lastGEP
-        );
+            lastGEP);
     }
     return (llvm::Value*)lastGEP;
 }
@@ -423,8 +415,7 @@ std::any IrEmitter::visitOpDeref(struct AsgOpDeref* node)
         }
         lastLoad = builder_->CreateLoad(
             derefType->getLLVMType(*context_, curr_function_->getAddressSpace()),
-            lastLoad
-        );
+            lastLoad);
         exprType = derefType;
     }
     return lastLoad;
@@ -461,13 +452,11 @@ std::any IrEmitter::visitVariable(struct AsgVariable* node)
         return (llvm::Value*)builder_->CreateInBoundsGEP(
             varType->getLLVMType(*context_, curr_function_->getAddressSpace()),
             alloca,
-            ids
-        );
+            ids);
     }
     return (llvm::Value*)builder_->CreateLoad(
         findVarType(node->name, node)->getLLVMType(*context_, curr_function_->getAddressSpace()),
-        findAlloca(node->name)
-    );
+        findAlloca(node->name));
 }
 
 std::any IrEmitter::visitCall(struct AsgCall* node)

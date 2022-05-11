@@ -35,8 +35,7 @@ std::any AstVisitor::visitFunction(TinyCParser::FunctionContext* ctx)
                          std::string{},
                          [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
                              return accum + indexing->getText();
-                         }
-                   );
+                         });
             p.name = paramCtx->variableName()->getText();
 
             node->parameters.push_back(p);
@@ -129,8 +128,7 @@ std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext* ctx)
                      std::string{},
                      [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
                          return accum + indexing->getText();
-                     }
-               );
+                     });
 
     node->name = ctx->variableName()->getText();
 
