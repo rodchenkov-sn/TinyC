@@ -23,7 +23,10 @@ jobs:
       - name: Build
         working-directory: ./build
         run: make
-      - run: cp build/tcc tcc
+      - uses: actions/upload-artifact@v2
+        with:
+          name: tcc-exe
+          path: build/tcc
 
   test:
     needs: [list-examples, build]
@@ -33,6 +36,11 @@ jobs:
       matrix:
         example: ${{ fromJson(needs.list-examples.outputs.matrix) }}
     steps:
+      - uses: actions/checkout@v2
+      - uses: actions/download-artifact@v2
+        with:
+          name: tcc-exe
+      - run: ls
       - name: Translate to IR
         run: ./tcc '${{ matrix.example }}.c'
       - name: Translate to ASM
