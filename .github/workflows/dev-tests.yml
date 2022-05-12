@@ -1,5 +1,8 @@
-name: Test
-on: [push]
+name: Dev tests
+on:
+  push:
+    branches-ignore:
+      - master
 jobs:
 
   list-examples:
