@@ -31,6 +31,8 @@ struct Type : public std::enable_shared_from_this<Type> {
         return nullptr;
     };
 
+    static bool isSame(const Type::Id& lhs, const Type::Id& rhs);
+
     template<typename T>
     T* as()
     {

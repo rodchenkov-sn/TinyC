@@ -32,8 +32,8 @@ std::any TypeResolver::visitVariableDefinition(struct AsgVariableDefinition* nod
 {
     auto nodeType = TypeLibrary::inst().get(node->type);
     if (node->value) {
-        auto valueType = std::any_cast<Type::Id>(node->accept(this));
-        if (!valueType || !nodeType || valueType != nodeType) {
+        auto valueType = std::any_cast<Type::Id>(node->value->accept(this));
+        if (!Type::isSame(nodeType, valueType)) {
             ok_ = false;
         }
     }
@@ -44,7 +44,7 @@ std::any TypeResolver::visitReturn(struct AsgReturn* node)
 {
     auto expected = node->function->type->returnType;
     auto real = std::any_cast<Type::Id>(node->value->accept(this));
-    if (!real || !expected || real != expected) {
+    if (!Type::isSame(real, expected)) {
         ok_ = false;
     }
     return Type::invalid();
@@ -54,7 +54,7 @@ std::any TypeResolver::visitAssignment(struct AsgAssignment* node)
 {
     auto valueType = std::any_cast<Type::Id>(node->value->accept(this));
     auto assignableType = std::any_cast<Type::Id>(node->assignable->accept(this));
-    if (valueType != assignableType) {
+    if (!Type::isSame(valueType, assignableType)) {
         ok_ = false;
         return Type::invalid();
     }
@@ -83,7 +83,7 @@ std::any TypeResolver::visitComp(struct AsgComp* node)
 {
     auto lhsType = std::any_cast<Type::Id>(node->lhs->accept(this));
     auto rhsType = std::any_cast<Type::Id>(node->rhs->accept(this));
-    if (!lhsType || !rhsType || lhsType != rhsType) {
+    if (!Type::isSame(lhsType, rhsType)) {
         ok_ = false;
         return Type::invalid();
     }
@@ -186,7 +186,7 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
     }
     for (auto i = 0; i < node->arguments.size(); i++) {
         auto argT = std::any_cast<Type::Id>(node->arguments[i]->accept(this));
-        if (!argT || argT != node->callee->parameters[i]) {
+        if (!Type::isSame(node->callee->parameters[i], argT)) {
             ok_ = false;
             return Type::invalid();
         }

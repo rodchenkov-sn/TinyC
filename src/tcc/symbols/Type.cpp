@@ -5,6 +5,32 @@
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
 
+bool Type::isSame(const Type::Id& lhs, const Type::Id& rhs)
+{
+    if (!lhs || !rhs) {
+        return false;
+    }
+    if (lhs->getCategory() != rhs->getCategory()) {
+        return false;
+    }
+    switch (lhs->getCategory()) {
+    case Category::Basic:
+        return lhs == rhs;
+    case Category::Ptr:
+        return isSame(lhs->as<PtrType>()->getDeref(), rhs->as<PtrType>()->getDeref());
+    case Category::Array: {
+        auto* lhsA = lhs->as<ArrayType>();
+        auto* rhsA = rhs->as<ArrayType>();
+        if (lhsA->getSize() == -1 || rhsA->getSize() == -1) {
+            return isSame(lhsA->getIndexed(), rhsA->getIndexed());
+        }
+        return isSame(lhsA->getIndexed(), rhsA->getIndexed()) && lhsA->getSize() == rhsA->getSize();
+    }
+    case Category::Struct:
+        return lhs == rhs;
+    }
+}
+
 Type::Id Type::getRef()
 {
     return std::make_shared<PtrType>(shared_from_this());
