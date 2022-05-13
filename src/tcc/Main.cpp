@@ -90,13 +90,13 @@ int main(int argc, char** argv)
         auto outputName = program.get<std::string>("-o");
         if (outputName.empty()) {
             outputName = inputFileName.erase(
-                inputFileName.find_last_of('.'),
-                inputFileName.size())
-                + ".ll";
+                             inputFileName.find_last_of('.'),
+                             inputFileName.size())
+                       + ".ll";
         }
 
         std::error_code ec;
-        llvm::raw_fd_ostream ostream{ outputName, ec };
+        llvm::raw_fd_ostream ostream{outputName, ec};
 
         if (ec) {
             std::cerr << ec.message();
