@@ -6,15 +6,24 @@
 
 #include <llvm/IR/Type.h>
 
-#define DECL_TYPE_CATEGORY(c)                                 \
-    static Type::Category getCategoryStatic() { return c; }   \
-    Type::Category getCategory() const override { return c; }
+#define DECL_TYPE_CATEGORY(c)                   \
+    static Type::Category getCategoryStatic()   \
+    {                                           \
+        return c;                               \
+    }                                           \
+    Type::Category getCategory() const override \
+    {                                           \
+        return c;                               \
+    }
 
 struct Type : public std::enable_shared_from_this<Type> {
     using Id = std::shared_ptr<const Type>;
 
     enum class Category {
-        Basic, Ptr, Array, Struct
+        Basic,
+        Ptr,
+        Array,
+        Struct
     };
 
     static Id invalid()
@@ -55,8 +64,8 @@ public:
 
     Id getNamed() const override;
 
-    llvm::Type* getLLVMType(llvm::LLVMContext &ctx, unsigned int addrSpace) const override;
-    llvm::Type * getLLVMParamType(llvm::LLVMContext &ctx, unsigned int addrSpace) const override;
+    llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
+    llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
 private:
     std::vector<std::pair<Id, std::string>> fields_;

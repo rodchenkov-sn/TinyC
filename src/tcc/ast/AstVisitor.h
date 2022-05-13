@@ -6,7 +6,7 @@
 class AstVisitor : public TinyCBaseVisitor {
 public:
     std::any visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx) override;
-    std::any visitStruct(TinyCParser::StructContext *ctx) override;
+    std::any visitStruct(TinyCParser::StructContext* ctx) override;
     std::any visitFunction(TinyCParser::FunctionContext* ctx) override;
     std::any visitStatements(TinyCParser::StatementsContext* ctx) override;
     std::any visitStatement(TinyCParser::StatementContext* ctx) override;

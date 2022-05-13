@@ -63,7 +63,6 @@ std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
     return {};
 }
 
-
 std::any IrEmitter::visitStructDefinition(struct AsgStructDefinition* node)
 {
     // To be continued!

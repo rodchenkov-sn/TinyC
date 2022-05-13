@@ -6,7 +6,7 @@
 
 Type::Id Type::getRef() const
 {
-   return std::make_shared<PtrType>(shared_from_this());
+    return std::make_shared<PtrType>(shared_from_this());
 }
 
 Type::Id Type::getArray(int size) const
@@ -21,7 +21,7 @@ StructType::StructType(std::vector<std::pair<Id, std::string>> fields)
 
 int StructType::getFieldId(std::string_view name) const
 {
-    auto elem = std::find_if(fields_.begin(), fields_.end(), [&](const auto& p){ return p.second == name; });
+    auto elem = std::find_if(fields_.begin(), fields_.end(), [&](const auto& p) { return p.second == name; });
     if (elem == fields_.end()) {
         return -1;
     }
@@ -30,7 +30,7 @@ int StructType::getFieldId(std::string_view name) const
 
 Type::Id StructType::getFieldType(std::string_view name) const
 {
-    auto elem = std::find_if(fields_.begin(), fields_.end(), [&](const auto& p){ return p.second == name; });
+    auto elem = std::find_if(fields_.begin(), fields_.end(), [&](const auto& p) { return p.second == name; });
     if (elem == fields_.end()) {
         return invalid();
     }
@@ -45,7 +45,7 @@ Type::Id StructType::getNamed() const
 llvm::Type* StructType::getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
 {
     std::vector<llvm::Type*> types;
-    std::transform(fields_.begin(), fields_.end(), std::back_inserter(types), [&](const auto& pair){
+    std::transform(fields_.begin(), fields_.end(), std::back_inserter(types), [&](const auto& pair) {
         return pair.first->getLLVMType(ctx, addrSpace);
     });
     return llvm::StructType::get(ctx, types);

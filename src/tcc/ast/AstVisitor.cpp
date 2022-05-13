@@ -15,7 +15,6 @@ std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext* c
     return (AsgNode*)node.release();
 }
 
-
 std::any AstVisitor::visitStruct(TinyCParser::StructContext* ctx)
 {
     auto node = std::make_unique<AsgStructDefinition>();
@@ -26,12 +25,12 @@ std::any AstVisitor::visitStruct(TinyCParser::StructContext* ctx)
         f.type = field->type()->typeName()->getText()
                + std::string(field->type()->ASTERISK().size(), '*')
                + std::accumulate(
-                   indexes.begin(),
-                   indexes.end(),
-                   std::string{},
-                   [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
-                       return accum + indexing->getText();
-                   });
+                     indexes.begin(),
+                     indexes.end(),
+                     std::string{},
+                     [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
+                         return accum + indexing->getText();
+                     });
         f.name = field->IDENTIFIER()->getText();
         node->fields.push_back(f);
     }
