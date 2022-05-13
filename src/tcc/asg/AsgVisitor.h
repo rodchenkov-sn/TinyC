@@ -5,6 +5,7 @@
 
 struct AsgVisitorBase {
     virtual std::any visitStatementList(struct AsgStatementList* node) = 0;
+    virtual std::any visitStructDefinition(struct AsgStructDefinition* node) = 0;
     virtual std::any visitFunctionDefinition(struct AsgFunctionDefinition* node) = 0;
     virtual std::any visitVariableDefinition(struct AsgVariableDefinition* node) = 0;
     virtual std::any visitReturn(struct AsgReturn* node) = 0;

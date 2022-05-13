@@ -31,7 +31,7 @@ BraceWrapping:
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeComma
-BreakInheritanceList: BeforeComma
+BreakInheritanceList: AfterComma
 ColumnLimit: 0
 CompactNamespaces: false
 ContinuationIndentWidth: 4

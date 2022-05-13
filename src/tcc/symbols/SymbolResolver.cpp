@@ -27,6 +27,23 @@ std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
     return {};
 }
 
+std::any SymbolResolver::visitStructDefinition(struct AsgStructDefinition* node)
+{
+    std::vector<std::pair<Type::Id, std::string>> fields;
+    for (auto& field : node->fields) {
+        auto type = TypeLibrary::inst().get(field.type);
+        if (!type) {
+            std::cerr << "undefined type " << field.type << " in struct " << node->name << '\n';
+            continue;
+        }
+        fields.emplace_back(type, field.name);
+    }
+    if (!TypeLibrary::inst().add(node->name, std::make_shared<StructType>(fields))) {
+        std::cerr << "redefinition of struct " << node->name << '\n';
+    }
+    return {};
+}
+
 std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 {
     Function function;

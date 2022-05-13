@@ -32,6 +32,23 @@ struct AsgStatementList : AsgNode {
     std::unordered_map<std::string, Type::Id> localVariables;
 };
 
+
+struct AsgStructDefinition : AsgNode {
+    struct Field {
+        std::string type;
+        std::string name;
+    };
+
+    std::any accept(AsgVisitorBase *visitor) override
+    {
+        return visitor->visitStructDefinition(this);
+    }
+
+    std::string name;
+    std::vector<Field> fields;
+};
+
+
 struct AsgFunctionDefinition : AsgNode {
     struct Parameter {
         std::string type;

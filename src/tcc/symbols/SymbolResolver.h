@@ -22,6 +22,7 @@ public:
 
 private:
     std::any visitStatementList(struct AsgStatementList* node) override;
+    std::any visitStructDefinition(struct AsgStructDefinition *node) override;
     std::any visitFunctionDefinition(struct AsgFunctionDefinition* node) override;
     std::any visitVariableDefinition(struct AsgVariableDefinition* node) override;
     std::any visitReturn(struct AsgReturn* node) override;

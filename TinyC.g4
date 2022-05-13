@@ -1,8 +1,24 @@
 grammar TinyC;
 
 translationUnit
-    :   function+ EOF
+    :   entity+ EOF
     ;
+
+entity
+    :   function
+    |   struct
+    ;
+
+
+struct
+    :   STRUCT IDENTIFIER L_BRACE structField+ R_BRACE SEMICOLON
+    ;
+
+
+structField
+    :   type IDENTIFIER constantIndexing* SEMICOLON
+    ;
+
 
 function
     :   type functionName L_PARAN parameters? R_PARAN statements
@@ -159,6 +175,7 @@ IF     : 'if';
 ELSE   : 'else';
 WHILE  : 'while';
 FOR    : 'for';
+STRUCT : 'struct';
 
 
 IDENTIFIER

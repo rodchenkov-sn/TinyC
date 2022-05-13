@@ -11,6 +11,7 @@ public:
     static TypeLibrary& inst();
 
     Type::Id get(const std::string& name) const;
+    bool add(const std::string& name, const Type::Id& tid);
 
 private:
     TypeLibrary();

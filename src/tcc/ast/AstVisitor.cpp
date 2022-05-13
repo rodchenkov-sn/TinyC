@@ -8,9 +8,32 @@
 std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx)
 {
     auto node = std::make_unique<AsgStatementList>();
-    for (auto* functionCtx : ctx->function()) {
-        auto* function = std::any_cast<AsgNode*>(visit(functionCtx));
+    for (auto* entity : ctx->entity()) {
+        auto* function = std::any_cast<AsgNode*>(visit(entity));
         node->statements.emplace_back(function);
+    }
+    return (AsgNode*)node.release();
+}
+
+
+std::any AstVisitor::visitStruct(TinyCParser::StructContext* ctx)
+{
+    auto node = std::make_unique<AsgStructDefinition>();
+    node->name = ctx->IDENTIFIER()->getText();
+    for (auto* field : ctx->structField()) {
+        AsgStructDefinition::Field f;
+        const auto& indexes = field->constantIndexing();
+        f.type = field->type()->typeName()->getText()
+               + std::string(field->type()->ASTERISK().size(), '*')
+               + std::accumulate(
+                   indexes.begin(),
+                   indexes.end(),
+                   std::string{},
+                   [](const std::string& accum, TinyCParser::ConstantIndexingContext* indexing) {
+                       return accum + indexing->getText();
+                   });
+        f.name = field->IDENTIFIER()->getText();
+        node->fields.push_back(f);
     }
     return (AsgNode*)node.release();
 }

@@ -1,34 +1,65 @@
 #include "Type.h"
 
-ArrayType::ArrayType(Type::Id underlying, int size)
-    : underlying_(std::move(underlying))
-    , size_(size)
+#include <algorithm>
+
+#include <llvm/IR/DerivedTypes.h>
+
+Type::Id Type::getRef() const
 {
+   return std::make_shared<PtrType>(shared_from_this());
 }
 
-Type::Id ArrayType::getRef() const
-{
-    return std::make_shared<PtrType>(shared_from_this());
-}
-
-Type::Id ArrayType::getArray(int size) const
+Type::Id Type::getArray(int size) const
 {
     return std::make_shared<ArrayType>(shared_from_this(), size);
 }
 
-bool ArrayType::isPtr() const
+StructType::StructType(std::vector<std::pair<Id, std::string>> fields)
+    : fields_(std::move(fields))
 {
-    return false;
 }
 
-Type::Id ArrayType::getDeref() const
+int StructType::getFieldId(std::string_view name) const
 {
-    return invalid();
+    auto elem = std::find_if(fields_.begin(), fields_.end(), [&](const auto& p){ return p.second == name; });
+    if (elem == fields_.end()) {
+        return -1;
+    }
+    return (int)(elem - fields_.begin());
 }
 
-bool ArrayType::isArray() const
+Type::Id StructType::getFieldType(std::string_view name) const
 {
-    return true;
+    auto elem = std::find_if(fields_.begin(), fields_.end(), [&](const auto& p){ return p.second == name; });
+    if (elem == fields_.end()) {
+        return invalid();
+    }
+    return elem->first;
+}
+
+Type::Id StructType::getNamed() const
+{
+    return shared_from_this();
+}
+
+llvm::Type* StructType::getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
+{
+    std::vector<llvm::Type*> types;
+    std::transform(fields_.begin(), fields_.end(), std::back_inserter(types), [&](const auto& pair){
+        return pair.first->getLLVMType(ctx, addrSpace);
+    });
+    return llvm::StructType::get(ctx, types);
+}
+
+llvm::Type* StructType::getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
+{
+    return llvm::PointerType::get(ctx, addrSpace);
+}
+
+ArrayType::ArrayType(Type::Id underlying, int size)
+    : underlying_(std::move(underlying))
+    , size_(size)
+{
 }
 
 Type::Id ArrayType::getIndexed() const
@@ -61,39 +92,9 @@ PtrType::PtrType(Type::Id underlying)
 {
 }
 
-Type::Id PtrType::getRef() const
-{
-    return std::make_shared<PtrType>(shared_from_this());
-}
-
-Type::Id PtrType::getArray(int size) const
-{
-    return std::make_shared<ArrayType>(shared_from_this(), size);
-}
-
-bool PtrType::isPtr() const
-{
-    return true;
-}
-
 Type::Id PtrType::getDeref() const
 {
     return underlying_;
-}
-
-bool PtrType::isArray() const
-{
-    return false;
-}
-
-Type::Id PtrType::getIndexed() const
-{
-    return invalid();
-}
-
-int PtrType::getSize() const
-{
-    return 1;
 }
 
 Type::Id PtrType::getNamed() const
@@ -109,41 +110,6 @@ llvm::Type* PtrType::getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace)
 BaseType::BaseType(BaseType::TypeGetter typeGetter)
     : type_getter_(std::move(typeGetter))
 {
-}
-
-Type::Id BaseType::getRef() const
-{
-    return std::make_shared<PtrType>(shared_from_this());
-}
-
-Type::Id BaseType::getArray(int size) const
-{
-    return std::make_shared<ArrayType>(shared_from_this(), size);
-}
-
-bool BaseType::isPtr() const
-{
-    return false;
-}
-
-Type::Id BaseType::getDeref() const
-{
-    return invalid();
-}
-
-bool BaseType::isArray() const
-{
-    return false;
-}
-
-Type::Id BaseType::getIndexed() const
-{
-    return invalid();
-}
-
-int BaseType::getSize() const
-{
-    return 1;
 }
 
 Type::Id BaseType::getNamed() const
