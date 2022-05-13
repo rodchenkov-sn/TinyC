@@ -5,6 +5,7 @@
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
 #include "symbols/SymbolResolver.h"
+#include "symbols/TypeResolver.h"
 #include "TinyCLexer.h"
 #include "TinyCParser.h"
 
@@ -61,6 +62,12 @@ int main(int argc, char** argv)
         for (auto& errorStream : resolver.getErrors()) {
             std::cerr << errorStream.str() << "\n";
         }
+        return EXIT_FAILURE;
+    }
+
+    TypeResolver typeResolver;
+    if (!typeResolver.resolve(root)) {
+        std::cerr << "invalid typing";
         return EXIT_FAILURE;
     }
 

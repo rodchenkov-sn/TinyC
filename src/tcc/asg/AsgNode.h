@@ -20,6 +20,7 @@ struct AsgNode {
 
     struct AsgStatementList* list = nullptr;
     struct AsgFunctionDefinition* function = nullptr;
+    Type::Id exprType = Type::invalid();
 };
 
 struct AsgStatementList : AsgNode {
