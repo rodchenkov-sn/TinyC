@@ -25,6 +25,11 @@ int main(int argc, char** argv)
         .default_value(false)
         .implicit_value(true);
 
+    program.add_argument("-p", "--print")
+        .help("print IR to stdout instead of creating output file")
+        .default_value(false)
+        .implicit_value(true);
+
     try {
         program.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
@@ -81,25 +86,29 @@ int main(int argc, char** argv)
         moduleName,
         !program.get<bool>("--no-opt"));
 
-    auto outputName = program.get<std::string>("-o");
-    if (outputName.empty()) {
-        outputName = inputFileName.erase(
-                         inputFileName.find_last_of('.'),
-                         inputFileName.size())
-                   + ".ll";
+    if (!program.get<bool>("-p")) {
+        auto outputName = program.get<std::string>("-o");
+        if (outputName.empty()) {
+            outputName = inputFileName.erase(
+                inputFileName.find_last_of('.'),
+                inputFileName.size())
+                + ".ll";
+        }
+
+        std::error_code ec;
+        llvm::raw_fd_ostream ostream{ outputName, ec };
+
+        if (ec) {
+            std::cerr << ec.message();
+            return EXIT_FAILURE;
+        }
+
+        module->print(ostream, nullptr);
+
+        ostream.close();
+    } else {
+        module->print(llvm::outs(), nullptr);
     }
-
-    std::error_code ec;
-    llvm::raw_fd_ostream ostream{outputName, ec};
-
-    if (ec) {
-        std::cerr << ec.message();
-        return EXIT_FAILURE;
-    }
-
-    module->print(ostream, nullptr);
-
-    ostream.close();
 
     return EXIT_SUCCESS;
 }
