@@ -5,5 +5,6 @@ struct Vec2d {
 
 int main()
 {
+    Vec2d x;
     return 0;
 }

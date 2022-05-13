@@ -17,7 +17,7 @@
     }
 
 struct Type : public std::enable_shared_from_this<Type> {
-    using Id = std::shared_ptr<const Type>;
+    using Id = std::shared_ptr<Type>;
 
     enum class Category {
         Basic,
@@ -32,19 +32,19 @@ struct Type : public std::enable_shared_from_this<Type> {
     };
 
     template<typename T>
-    const T* as() const
+    T* as()
     {
         if (getCategory() == T::getCategoryStatic()) {
-            return static_cast<const T*>(this);
+            return static_cast<T*>(this);
         }
         return nullptr;
     }
 
-    virtual Id getRef() const;
-    virtual Id getArray(int size) const;
+    virtual Id getRef();
+    virtual Id getArray(int size);
 
     virtual Category getCategory() const = 0;
-    virtual Id getNamed() const = 0;
+    virtual Id getNamed() = 0;
 
     virtual llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const = 0;
     virtual llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
@@ -62,12 +62,15 @@ public:
     int getFieldId(std::string_view name) const;
     Id getFieldType(std::string_view name) const;
 
-    Id getNamed() const override;
+    void create(std::string_view name, llvm::LLVMContext& ctx, unsigned int addrSpace);
+
+    Id getNamed() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
     llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
 private:
+    llvm::Type* self_type_ = nullptr;
     std::vector<std::pair<Id, std::string>> fields_;
 };
 
@@ -80,7 +83,7 @@ public:
     Id getIndexed() const;
     int getSize() const;
 
-    Id getNamed() const override;
+    Id getNamed() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
     llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
@@ -98,7 +101,7 @@ public:
 
     Id getDeref() const;
 
-    Id getNamed() const override;
+    Id getNamed() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
@@ -114,7 +117,7 @@ public:
 
     explicit BaseType(TypeGetter typeGetter);
 
-    Id getNamed() const override;
+    Id getNamed() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int) const override;
 

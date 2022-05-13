@@ -65,7 +65,7 @@ std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 
 std::any IrEmitter::visitStructDefinition(struct AsgStructDefinition* node)
 {
-    // To be continued!
+    TypeLibrary::inst().get(node->name)->as<StructType>()->create(node->name, *context_, 0);
     return {};
 }
 
