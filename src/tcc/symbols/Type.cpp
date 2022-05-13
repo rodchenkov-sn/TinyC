@@ -38,7 +38,6 @@ Type::Id StructType::getFieldType(std::string_view name) const
     return elem->first;
 }
 
-
 void StructType::create(std::string_view name, llvm::LLVMContext& ctx, unsigned int addrSpace)
 {
     std::vector<llvm::Type*> types;
