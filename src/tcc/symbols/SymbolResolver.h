@@ -10,15 +10,13 @@
 
 #include "asg/AsgNode.h"
 #include "asg/AsgVisitor.h"
+#include "pipeline/PipelineStage.h"
 #include "Type.h"
 
-class SymbolResolver : private AsgVisitorBase {
+class SymbolResolver : private AsgVisitorBase,
+                       public PipeModifierBase {
 public:
-    bool resolve(AsgNode* root);
-    const std::vector<std::stringstream>& getErrors() const
-    {
-        return errors_;
-    }
+    std::any modify(std::any data) override;
 
 private:
     std::any visitStatementList(struct AsgStatementList* node) override;
@@ -42,10 +40,10 @@ private:
 
     Type::Id findVarType(const std::string& name) const;
 
-    std::vector<std::stringstream> errors_;
-
     AsgStatementList* top_scope_ = nullptr;
     AsgFunctionDefinition* current_function_ = nullptr;
+
+    bool ok_ = true;
 };
 
 #endif

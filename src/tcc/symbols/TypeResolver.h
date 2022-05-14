@@ -3,10 +3,12 @@
 
 #include "asg/AsgNode.h"
 #include "asg/AsgVisitor.h"
+#include "pipeline/PipelineStage.h"
 
-class TypeResolver : private AsgVisitorBase {
+class TypeResolver : private AsgVisitorBase,
+                     public PipeModifierBase {
 public:
-    bool resolve(AsgNode* root);
+    std::any modify(std::any data) override;
 
 private:
     std::any visitStatementList(struct AsgStatementList* node) override;

@@ -3,10 +3,17 @@
 #include "FunctionLib.h"
 #include "TypeLib.h"
 
-bool TypeResolver::resolve(AsgNode* root)
+std::any TypeResolver::modify(std::any data)
 {
+    if (data.type() != typeid(AsgNode*)) {
+        return {};
+    }
+    auto* root = std::any_cast<AsgNode*>(data);
     root->accept(this);
-    return ok_;
+    if (ok_) {
+        return root;
+    }
+    return {};
 }
 
 std::any TypeResolver::visitStatementList(struct AsgStatementList* node)

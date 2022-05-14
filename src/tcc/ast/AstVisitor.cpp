@@ -5,6 +5,18 @@
 
 #include "asg/AsgNode.h"
 
+std::any AstVisitor::modify(std::any data)
+{
+    if (data.type() != typeid(TinyCParser::TranslationUnitContext*)) {
+        return {};
+    }
+    auto* ctx = std::any_cast<TinyCParser::TranslationUnitContext*>(data);
+
+    auto ret = visitTranslationUnit(ctx);
+
+    return ret;
+}
+
 std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx)
 {
     auto node = std::make_unique<AsgStatementList>();

@@ -4,10 +4,17 @@
 #include "FunctionLib.h"
 #include "TypeLib.h"
 
-bool SymbolResolver::resolve(AsgNode* root)
+std::any SymbolResolver::modify(std::any data)
 {
+    if (data.type() != typeid(AsgNode*)) {
+        return {};
+    }
+    auto* root = std::any_cast<AsgNode*>(data);
     root->accept(this);
-    return errors_.empty();
+    if (ok_) {
+        return root;
+    }
+    return {};
 }
 
 std::any SymbolResolver::visitStatementList(struct AsgStatementList* node)
@@ -33,13 +40,13 @@ std::any SymbolResolver::visitStructDefinition(struct AsgStructDefinition* node)
     for (auto& field : node->fields) {
         auto type = TypeLibrary::inst().get(field.type);
         if (!type) {
-            std::cerr << "undefined type " << field.type << " in struct " << node->name << '\n';
+            ok_ = false;
             continue;
         }
         fields.emplace_back(type, field.name);
     }
     if (!TypeLibrary::inst().add(node->name, std::make_shared<StructType>(fields))) {
-        std::cerr << "redefinition of struct " << node->name << '\n';
+        ok_ = false;
     }
     return {};
 }
@@ -52,7 +59,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     auto retType = TypeLibrary::inst().get(node->returnType);
 
     if (!retType) {
-        errors_.emplace_back() << "undefined return type " << node->returnType << " in " << function.name << " signature";
+        ok_ = false;
     }
 
     function.returnType = retType;
@@ -62,7 +69,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     for (auto& parameter : node->parameters) {
         auto type = TypeLibrary::inst().get(parameter.type);
         if (!type) {
-            errors_.emplace_back() << "undefined parameter type " << parameter.type << " in " << function.name << " signature";
+            ok_ = false;
         }
         function.parameters.push_back(type);
 
@@ -72,7 +79,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     node->type = FunctionLibrary::inst().add(function);
 
     if (!node->type) {
-        errors_.emplace_back() << "function " << node->name << " redefinition";
+        ok_ = false;
     }
 
     current_function_ = node;
@@ -91,12 +98,12 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
     node->list = top_scope_;
 
     if (findVarType(node->name)) {
-        errors_.emplace_back() << "variable " << node->name << " was redefined";
+        ok_ = false;
     }
 
     auto type = TypeLibrary::inst().get(node->type);
     if (!type) {
-        errors_.emplace_back() << "undefined type " << node->type << " in variable " << node->name << " definition";
+        ok_ = false;
     }
 
     top_scope_->localVariables.insert({node->name, type});
@@ -237,7 +244,7 @@ std::any SymbolResolver::visitVariable(struct AsgVariable* node)
     node->list = top_scope_;
 
     if (!findVarType(node->name)) {
-        errors_.emplace_back() << "variable " << node->name << " is undefined";
+        ok_ = false;
     }
 
     return {};
@@ -251,7 +258,7 @@ std::any SymbolResolver::visitCall(struct AsgCall* node)
     auto funId = FunctionLibrary::inst().get(node->functionName);
 
     if (!funId) {
-        errors_.emplace_back() << "function " << node->functionName << " is undefined";
+        ok_ = false;
     }
 
     node->callee = funId;

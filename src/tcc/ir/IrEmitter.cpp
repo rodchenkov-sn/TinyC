@@ -11,39 +11,43 @@
 
 #include "symbols/TypeLib.h"
 
-std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view moduleName, bool optimize)
+IrEmitter::IrEmitter(std::string moduleName, bool optimize)
+    : module_name_(std::move(moduleName))
+    , optimize_(optimize)
 {
+}
+
+std::any IrEmitter::modify(std::any data)
+{
+    if (data.type() != typeid(AsgNode*)) {
+        return {};
+    }
+    auto* root = std::any_cast<AsgNode*>(data);
+
     context_ = std::make_unique<llvm::LLVMContext>();
-    module_ = std::make_unique<llvm::Module>(moduleName, *context_);
+    module_ = std::make_unique<llvm::Module>(module_name_, *context_);
     builder_ = std::make_unique<llvm::IRBuilder<>>(*context_);
 
     root->accept(this);
+    delete root;
 
     llvm::verifyModule(*module_, &llvm::errs());
 
-    if (optimize) {
+    if (optimize_) {
         llvm::LoopAnalysisManager LAM;
         llvm::FunctionAnalysisManager FAM;
         llvm::CGSCCAnalysisManager CGAM;
         llvm::ModuleAnalysisManager MAM;
-
         llvm::PassBuilder PB;
-
         PB.registerModuleAnalyses(MAM);
         PB.registerCGSCCAnalyses(CGAM);
         PB.registerFunctionAnalyses(FAM);
         PB.registerLoopAnalyses(LAM);
         PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
-
         llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
-
         MPM.run(*module_, MAM);
     }
-
-    std::unique_ptr<llvm::Module> r;
-    r.swap(module_);
-
-    return r;
+    return module_.release();
 }
 
 std::any IrEmitter::visitStatementList(struct AsgStatementList* node)

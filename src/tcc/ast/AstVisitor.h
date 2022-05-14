@@ -1,10 +1,14 @@
 #ifndef TINYC_ASTVISITOR_H
 #define TINYC_ASTVISITOR_H
 
+#include "pipeline/PipelineStage.h"
 #include "TinyCBaseVisitor.h"
 
-class AstVisitor : public TinyCBaseVisitor {
+class AstVisitor : public TinyCBaseVisitor,
+                   public PipeModifierBase {
 public:
+    std::any modify(std::any data) override;
+
     std::any visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx) override;
     std::any visitStruct(TinyCParser::StructContext* ctx) override;
     std::any visitFunction(TinyCParser::FunctionContext* ctx) override;

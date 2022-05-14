@@ -13,10 +13,14 @@
 
 #include "asg/AsgNode.h"
 #include "asg/AsgVisitor.h"
+#include "pipeline/PipelineStage.h"
 
-class IrEmitter : private AsgVisitorBase {
+class IrEmitter : private AsgVisitorBase,
+                  public PipeModifierBase {
 public:
-    std::unique_ptr<llvm::Module> emit(AsgNode* root, std::string_view moduleName, bool optimize = true);
+    IrEmitter(std::string moduleName, bool optimize);
+
+    std::any modify(std::any data) override;
 
 private:
     enum class RetType {
@@ -56,6 +60,9 @@ private:
     llvm::Function* curr_function_;
 
     std::stack<RetType> expected_ret_;
+
+    std::string module_name_;
+    bool optimize_;
 };
 
 #endif

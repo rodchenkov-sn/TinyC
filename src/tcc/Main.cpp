@@ -1,13 +1,14 @@
 #include <iostream>
 
 #include "argparse/argparse.hpp"
-#include "asg/AsgNode.h"
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
+#include "pipeline/input/FileReader.h"
+#include "pipeline/output/FileWriter.h"
+#include "pipeline/output/TerminalWriter.h"
+#include "pipeline/Pipeline.h"
 #include "symbols/SymbolResolver.h"
 #include "symbols/TypeResolver.h"
-#include "TinyCLexer.h"
-#include "TinyCParser.h"
 
 int main(int argc, char** argv)
 {
@@ -39,41 +40,10 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    std::ifstream file;
     auto inputFileName = program.get<std::string>("input");
-    file.open(inputFileName);
-
-    if (!file.is_open()) {
-        std::cerr << "could not open file " << program.get<std::string>("input");
-        return EXIT_FAILURE;
-    }
-
-    antlr4::ANTLRInputStream inputStream{file};
-    TinyCLexer lexer{&inputStream};
-    antlr4::CommonTokenStream tokens{&lexer};
-    TinyCParser parser{&tokens};
-    TinyCParser::TranslationUnitContext* context = parser.translationUnit();
-
-    AstVisitor visitor;
-    auto* root = std::any_cast<AsgNode*>(visitor.visitTranslationUnit(context));
-
-    SymbolResolver resolver;
-    if (!resolver.resolve(root)) {
-        for (auto& errorStream : resolver.getErrors()) {
-            std::cerr << errorStream.str() << "\n";
-        }
-        return EXIT_FAILURE;
-    }
-
-    TypeResolver typeResolver;
-    if (!typeResolver.resolve(root)) {
-        std::cerr << "invalid typing";
-        return EXIT_FAILURE;
-    }
 
     auto moduleName = inputFileName;
     auto lastPathChar = moduleName.find_last_of('/');
-
     if (lastPathChar == std::string::npos) {
         lastPathChar = moduleName.find_last_of('\\');
     } else {
@@ -82,18 +52,22 @@ int main(int argc, char** argv)
             lastPathChar = l;
         }
     }
-
     if (lastPathChar != std::string::npos) {
         moduleName.erase(0, lastPathChar + 1);
     }
 
-    IrEmitter emitter;
-    auto module = emitter.emit(
-        root,
-        moduleName,
-        !program.get<bool>("--no-opt"));
+    Pipeline pipeline;
 
-    if (!program.get<bool>("-p")) {
+    pipeline
+        .add(std::make_unique<FileReader>(program.get<std::string>("input")))
+        .add(std::make_unique<AstVisitor>())
+        .add(std::make_unique<SymbolResolver>())
+        .add(std::make_unique<TypeResolver>())
+        .add(std::make_unique<IrEmitter>(moduleName, !program.get<bool>("--no-opt")));
+
+    if (program.get<bool>("-p")) {
+        pipeline.add(std::make_unique<TerminalWriter>());
+    } else {
         auto outputName = program.get<std::string>("-o");
         if (outputName.empty()) {
             outputName = inputFileName.erase(
@@ -101,21 +75,8 @@ int main(int argc, char** argv)
                              inputFileName.size())
                        + ".ll";
         }
-
-        std::error_code ec;
-        llvm::raw_fd_ostream ostream{outputName, ec};
-
-        if (ec) {
-            std::cerr << ec.message();
-            return EXIT_FAILURE;
-        }
-
-        module->print(ostream, nullptr);
-
-        ostream.close();
-    } else {
-        module->print(llvm::outs(), nullptr);
+        pipeline.add(std::make_unique<FileWriter>(outputName));
     }
 
-    return EXIT_SUCCESS;
+    return pipeline.run() ? EXIT_SUCCESS : EXIT_FAILURE;
 }
