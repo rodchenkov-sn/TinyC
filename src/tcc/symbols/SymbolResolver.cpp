@@ -1,5 +1,7 @@
 #include "SymbolResolver.h"
 
+#include <spdlog/spdlog.h>
+
 #include "asg/AsgNode.h"
 #include "FunctionLib.h"
 #include "TypeLib.h"
@@ -7,6 +9,7 @@
 std::any SymbolResolver::modify(std::any data)
 {
     if (data.type() != typeid(AsgNode*)) {
+        spdlog::critical("Unexpected data type passed to SymbolResolver -- expected AsgNode*");
         return {};
     }
     auto* root = std::any_cast<AsgNode*>(data);
@@ -40,12 +43,14 @@ std::any SymbolResolver::visitStructDefinition(struct AsgStructDefinition* node)
     for (auto& field : node->fields) {
         auto type = TypeLibrary::inst().get(field.type);
         if (!type) {
+            spdlog::error("at line {} -- undefined type {}", field.refLine, field.type);
             ok_ = false;
             continue;
         }
         fields.emplace_back(type, field.name);
     }
-    if (!TypeLibrary::inst().add(node->name, std::make_shared<StructType>(fields))) {
+    if (!TypeLibrary::inst().add(node->name, std::make_shared<StructType>(node->name, fields))) {
+        spdlog::error("at line {} -- type {} already declared", node->refLine, node->name);
         ok_ = false;
     }
     return {};
@@ -59,6 +64,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     auto retType = TypeLibrary::inst().get(node->returnType);
 
     if (!retType) {
+        spdlog::error("at line {} -- undefined function return type {}", node->refLine, node->returnType);
         ok_ = false;
     }
 
@@ -69,6 +75,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     for (auto& parameter : node->parameters) {
         auto type = TypeLibrary::inst().get(parameter.type);
         if (!type) {
+            spdlog::error("at line {} -- undefined type {} of param {}", node->refLine, parameter.type, parameter.name);
             ok_ = false;
         }
         function.parameters.push_back(type);
@@ -79,6 +86,7 @@ std::any SymbolResolver::visitFunctionDefinition(struct AsgFunctionDefinition* n
     node->type = FunctionLibrary::inst().add(function);
 
     if (!node->type) {
+        spdlog::error("at line {} -- function {} already declared", node->refLine, node->name);
         ok_ = false;
     }
 
@@ -98,11 +106,13 @@ std::any SymbolResolver::visitVariableDefinition(struct AsgVariableDefinition* n
     node->list = top_scope_;
 
     if (findVarType(node->name)) {
+        spdlog::error("at line {} -- variable {} already defined", node->refLine, node->name);
         ok_ = false;
     }
 
     auto type = TypeLibrary::inst().get(node->type);
     if (!type) {
+        spdlog::error("at line {} -- undefined variable type {}", node->refLine, node->type);
         ok_ = false;
     }
 
@@ -244,6 +254,7 @@ std::any SymbolResolver::visitVariable(struct AsgVariable* node)
     node->list = top_scope_;
 
     if (!findVarType(node->name)) {
+        spdlog::error("at line {} -- undefined variable {}", node->refLine, node->name);
         ok_ = false;
     }
 
@@ -258,6 +269,7 @@ std::any SymbolResolver::visitCall(struct AsgCall* node)
     auto funId = FunctionLibrary::inst().get(node->functionName);
 
     if (!funId) {
+        spdlog::error("at line {} -- undefined function {} call", node->refLine, node->functionName);
         ok_ = false;
     }
 

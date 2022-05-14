@@ -66,7 +66,7 @@ UseTab: Never
 SortIncludes: CaseInsensitive
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '<llvm/'
+  - Regex: '<.*/'
     Priority: 2
   - Regex: '<'
     Priority: 1

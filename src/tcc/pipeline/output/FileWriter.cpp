@@ -1,6 +1,7 @@
 #include "FileWriter.h"
 
 #include <llvm/IR/Module.h>
+#include <spdlog/spdlog.h>
 
 FileWriter::FileWriter(std::string fileName)
     : file_name_(std::move(fileName))
@@ -10,6 +11,7 @@ FileWriter::FileWriter(std::string fileName)
 bool FileWriter::consume(std::any data)
 {
     if (data.type() != typeid(llvm::Module*)) {
+        spdlog::critical("Unexpected data type passed to FileWriter -- expected llvm::Module*");
         return false;
     }
     auto* module = std::any_cast<llvm::Module*>(data);
@@ -18,6 +20,7 @@ bool FileWriter::consume(std::any data)
     llvm::raw_fd_ostream ostream{file_name_, ec};
 
     if (ec) {
+        spdlog::error("can not open file {} for write -- {}", file_name_, ec.message());
         return false;
     }
 

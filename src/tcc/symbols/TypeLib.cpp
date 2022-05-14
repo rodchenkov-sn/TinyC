@@ -49,7 +49,10 @@ TypeLibrary& TypeLibrary::inst()
 
 TypeLibrary::TypeLibrary()
 {
-    named_types_.insert({{"int", std::make_shared<BaseType>([](auto& ctx) { return llvm::Type::getInt32Ty(ctx); })}, {"void", std::make_shared<BaseType>([](auto& ctx) { return llvm::Type::getVoidTy(ctx); })}});
+    named_types_.insert(
+        {"int", std::make_shared<BaseType>("int", [](auto& ctx) { return llvm::Type::getInt32Ty(ctx); })});
+    named_types_.insert(
+        {"void", std::make_shared<BaseType>("void", [](auto& ctx) { return llvm::Type::getVoidTy(ctx); })});
 }
 
 bool TypeLibrary::add(const std::string& name, const Type::Id& tid)

@@ -1,6 +1,8 @@
 #include <iostream>
 
-#include "argparse/argparse.hpp"
+#include <argparse/argparse.hpp>
+#include <spdlog/spdlog.h>
+
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
 #include "pipeline/input/FileReader.h"
@@ -32,12 +34,25 @@ int main(int argc, char** argv)
         .default_value(false)
         .implicit_value(true);
 
+    program.add_argument("-v", "--verbose")
+        .help("print additional info during compilation")
+        .default_value(false)
+        .implicit_value(true);
+
     try {
         program.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
         std::cerr << err.what() << std::endl;
         std::cerr << program;
         return EXIT_FAILURE;
+    }
+
+    spdlog::set_pattern("%^[%l]%$ %v");
+
+    if (program.get<bool>("-v")) {
+        spdlog::set_level(spdlog::level::info);
+    } else {
+        spdlog::set_level(spdlog::level::warn);
     }
 
     auto inputFileName = program.get<std::string>("input");
@@ -65,18 +80,24 @@ int main(int argc, char** argv)
         .add(std::make_unique<TypeResolver>())
         .add(std::make_unique<IrEmitter>(moduleName, !program.get<bool>("--no-opt")));
 
+    auto outputName = program.get<std::string>("-o");
+    if (outputName.empty()) {
+        outputName = inputFileName.erase(
+                         inputFileName.find_last_of('.'),
+                         inputFileName.size())
+                   + ".ll";
+    }
+
     if (program.get<bool>("-p")) {
         pipeline.add(std::make_unique<TerminalWriter>());
     } else {
-        auto outputName = program.get<std::string>("-o");
-        if (outputName.empty()) {
-            outputName = inputFileName.erase(
-                             inputFileName.find_last_of('.'),
-                             inputFileName.size())
-                       + ".ll";
-        }
         pipeline.add(std::make_unique<FileWriter>(outputName));
     }
 
-    return pipeline.run() ? EXIT_SUCCESS : EXIT_FAILURE;
+    if (!pipeline.run()) {
+        spdlog::error("compilation failed due to errors");
+        return EXIT_FAILURE;
+    }
+    spdlog::info("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
+    return EXIT_SUCCESS;
 }

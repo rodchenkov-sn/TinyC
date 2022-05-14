@@ -31,10 +31,12 @@ llvm_map_components_to_libnames(llvm_libs Passes)
 
 include_directories("${PROJECT_SOURCE_DIR}/vendor/argparse/include")
 
+find_package(spdlog REQUIRED)
+
 add_executable(tcc
         ${tcc_sources}
         ${grammar_generated_sources}
         ${ANTLR4_SRC_FILES_antlr_generated_sources}
         )
 
-target_link_libraries(tcc antlr4_static ${llvm_libs})
+target_link_libraries(tcc antlr4_static ${llvm_libs} spdlog::spdlog)

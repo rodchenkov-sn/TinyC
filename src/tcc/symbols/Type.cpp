@@ -1,6 +1,7 @@
 #include "Type.h"
 
 #include <algorithm>
+#include <sstream>
 
 #include <llvm/IR/DerivedTypes.h>
 #include <llvm/IR/LLVMContext.h>
@@ -41,8 +42,9 @@ Type::Id Type::getArray(int size)
     return std::make_shared<ArrayType>(shared_from_this(), size);
 }
 
-StructType::StructType(std::vector<std::pair<Id, std::string>> fields)
-    : fields_(std::move(fields))
+StructType::StructType(std::string name, std::vector<std::pair<Id, std::string>> fields)
+    : name_(std::move(name))
+    , fields_(std::move(fields))
 {
 }
 
@@ -64,22 +66,25 @@ Type::Id StructType::getFieldType(std::string_view name) const
     return elem->first;
 }
 
-void StructType::create(std::string_view name, llvm::LLVMContext& ctx, unsigned int addrSpace)
-{
-    std::vector<llvm::Type*> types;
-    std::transform(fields_.begin(), fields_.end(), std::back_inserter(types), [&](const auto& pair) {
-        return pair.first->getLLVMType(ctx, addrSpace);
-    });
-    self_type_ = llvm::StructType::create(types, name);
-}
-
 Type::Id StructType::getNamed()
 {
     return shared_from_this();
 }
 
+std::string StructType::toString()
+{
+    return name_;
+}
+
 llvm::Type* StructType::getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
 {
+    if (!self_type_) {
+        std::vector<llvm::Type*> types;
+        std::transform(fields_.begin(), fields_.end(), std::back_inserter(types), [&](const auto& pair) {
+            return pair.first->getLLVMType(ctx, addrSpace);
+        });
+        self_type_ = llvm::StructType::create(types, name_);
+    }
     return self_type_;
 }
 
@@ -109,6 +114,17 @@ Type::Id ArrayType::getNamed()
     return underlying_->getNamed();
 }
 
+std::string ArrayType::toString()
+{
+    std::stringstream ss;
+    ss << '[';
+    if (size_ != -1) {
+        ss << size_;
+    }
+    ss << ']';
+    return underlying_->toString() + ss.str();
+}
+
 llvm::Type* ArrayType::getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
 {
     return llvm::ArrayType::get(underlying_->getLLVMType(ctx, addrSpace), size_);
@@ -134,19 +150,30 @@ Type::Id PtrType::getNamed()
     return underlying_->getNamed();
 }
 
+std::string PtrType::toString()
+{
+    return underlying_->toString() + '*';
+}
+
 llvm::Type* PtrType::getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
 {
     return llvm::PointerType::get(ctx, addrSpace);
 }
 
-BaseType::BaseType(BaseType::TypeGetter typeGetter)
-    : type_getter_(std::move(typeGetter))
+BaseType::BaseType(std::string name, BaseType::TypeGetter typeGetter)
+    : name_(std::move(name))
+    , type_getter_(std::move(typeGetter))
 {
 }
 
 Type::Id BaseType::getNamed()
 {
     return shared_from_this();
+}
+
+std::string BaseType::toString()
+{
+    return name_;
 }
 
 llvm::Type* BaseType::getLLVMType(llvm::LLVMContext& ctx, unsigned int) const

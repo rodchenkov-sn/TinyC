@@ -8,6 +8,7 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/OptimizationLevel.h>
 #include <llvm/Passes/PassBuilder.h>
+#include <spdlog/spdlog.h>
 
 #include "symbols/TypeLib.h"
 
@@ -20,6 +21,7 @@ IrEmitter::IrEmitter(std::string moduleName, bool optimize)
 std::any IrEmitter::modify(std::any data)
 {
     if (data.type() != typeid(AsgNode*)) {
+        spdlog::critical("Unexpected data type passed to IrEmitter -- expected AsgNode*");
         return {};
     }
     auto* root = std::any_cast<AsgNode*>(data);
@@ -31,9 +33,12 @@ std::any IrEmitter::modify(std::any data)
     root->accept(this);
     delete root;
 
-    llvm::verifyModule(*module_, &llvm::errs());
+    if (llvm::verifyModule(*module_, &llvm::errs())) {
+        spdlog::critical("invalid module was emitted by IrEmitter");
+        ok_ = false;
+    }
 
-    if (optimize_) {
+    if (optimize_ && ok_) {
         llvm::LoopAnalysisManager LAM;
         llvm::FunctionAnalysisManager FAM;
         llvm::CGSCCAnalysisManager CGAM;
@@ -47,6 +52,11 @@ std::any IrEmitter::modify(std::any data)
         llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
         MPM.run(*module_, MAM);
     }
+
+    if (!ok_) {
+        return {};
+    }
+
     return module_.release();
 }
 
@@ -69,7 +79,6 @@ std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 
 std::any IrEmitter::visitStructDefinition(struct AsgStructDefinition* node)
 {
-    TypeLibrary::inst().get(node->name)->as<StructType>()->create(node->name, *context_, 0);
     return {};
 }
 
@@ -121,7 +130,10 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     node->body->accept(this);
 
-    llvm::verifyFunction(*function, &llvm::errs());
+    if (llvm::verifyFunction(*function, &llvm::errs())) {
+        spdlog::critical("invalid function {} was emitted by IrEmitter", node->name);
+        ok_ = false;
+    }
 
     scopes_.pop_back();
     expected_ret_.pop();

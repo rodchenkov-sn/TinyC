@@ -57,12 +57,14 @@ private:
     std::unique_ptr<llvm::IRBuilder<>> builder_;
 
     std::deque<std::unordered_map<std::string, llvm::AllocaInst*>> scopes_;
-    llvm::Function* curr_function_;
+    llvm::Function* curr_function_ = nullptr;
 
     std::stack<RetType> expected_ret_;
 
     std::string module_name_;
     bool optimize_;
+
+    bool ok_ = true;
 };
 
 #endif

@@ -21,6 +21,7 @@ struct AsgNode {
     struct AsgStatementList* list = nullptr;
     struct AsgFunctionDefinition* function = nullptr;
     Type::Id exprType = Type::invalid();
+    size_t refLine;
 };
 
 struct AsgStatementList : AsgNode {
@@ -37,6 +38,7 @@ struct AsgStructDefinition : AsgNode {
     struct Field {
         std::string type;
         std::string name;
+        size_t refLine;
     };
 
     std::any accept(AsgVisitorBase* visitor) override

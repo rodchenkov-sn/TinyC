@@ -48,6 +48,8 @@ struct Type : public std::enable_shared_from_this<Type> {
     virtual Category getCategory() const = 0;
     virtual Id getNamed() = 0;
 
+    virtual std::string toString() = 0;
+
     virtual llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const = 0;
     virtual llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const
     {
@@ -59,20 +61,21 @@ class StructType : public Type {
 public:
     DECL_TYPE_CATEGORY(Category::Struct)
 
-    explicit StructType(std::vector<std::pair<Id, std::string>> fields);
+    explicit StructType(std::string name, std::vector<std::pair<Id, std::string>> fields);
 
     int getFieldId(std::string_view name) const;
     Id getFieldType(std::string_view name) const;
 
-    void create(std::string_view name, llvm::LLVMContext& ctx, unsigned int addrSpace);
-
     Id getNamed() override;
+
+    std::string toString() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
     llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
 private:
-    llvm::Type* self_type_ = nullptr;
+    mutable llvm::Type* self_type_ = nullptr;
+    std::string name_;
     std::vector<std::pair<Id, std::string>> fields_;
 };
 
@@ -86,6 +89,8 @@ public:
     int getSize() const;
 
     Id getNamed() override;
+
+    std::string toString() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
     llvm::Type* getLLVMParamType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
@@ -105,6 +110,8 @@ public:
 
     Id getNamed() override;
 
+    std::string toString() override;
+
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int addrSpace) const override;
 
 private:
@@ -117,13 +124,16 @@ public:
 
     DECL_TYPE_CATEGORY(Category::Basic);
 
-    explicit BaseType(TypeGetter typeGetter);
+    explicit BaseType(std::string name, TypeGetter typeGetter);
 
     Id getNamed() override;
+
+    std::string toString() override;
 
     llvm::Type* getLLVMType(llvm::LLVMContext& ctx, unsigned int) const override;
 
 private:
+    std::string name_;
     TypeGetter type_getter_;
 };
 
