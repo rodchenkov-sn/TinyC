@@ -9,7 +9,7 @@ find_package(antlr4-generator REQUIRED)
 set(ANTLR4_JAR_LOCATION "${PROJECT_SOURCE_DIR}/vendor/antlr4/antlr-4.10.1-complete.jar")
 antlr4_generate(
         antlr_generated_sources
-        ${PROJECT_SOURCE_DIR}/TinyC.g4
+        ${PROJECT_SOURCE_DIR}/grammar/TinyC.g4
         BOTH
         FALSE
         TRUE
