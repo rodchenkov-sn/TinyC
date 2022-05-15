@@ -66,11 +66,7 @@ variableDecl
     ;
 
 assignment
-    :   assignable EQUAL expression
-    ;
-
-assignable
-    :   ASTERISK* variableName indexing*
+    :   operandDereference EQUAL expression
     ;
 
 returnStatement

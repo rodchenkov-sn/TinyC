@@ -137,6 +137,22 @@ private:
     TypeGetter type_getter_;
 };
 
+struct LRValue {
+    enum class Side {
+        L,
+        R
+    };
+
+    explicit LRValue(Type::Id t, Side s = Side::R)
+        : type(std::move(t))
+        , side(s)
+    {
+    }
+
+    Type::Id type;
+    Side side;
+};
+
 #undef DECL_TYPE_CATEGORY
 
 #endif
