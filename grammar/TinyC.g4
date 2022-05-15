@@ -102,7 +102,15 @@ mulDivExpr
     ;
 
 operandDereference
-    :   ASTERISK* indexedOperand
+    :   ASTERISK* fieldAccess
+    ;
+
+fieldAccess
+    :   indexedOperand fieldAccessOp*
+    ;
+
+fieldAccessOp
+    :   ( DOT | ARROW ) IDENTIFIER indexing*
     ;
 
 indexedOperand
@@ -207,6 +215,8 @@ PLUS      : '+';
 MINUS     : '-';
 SLASH     : '/';
 AMPERSAND : '&';
+DOT       : '.';
+ARROW     : '->';
 
 EQUALEQUAL   : '==';
 NOTEQUAL     : '!=';

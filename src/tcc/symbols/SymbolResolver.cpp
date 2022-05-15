@@ -218,6 +218,15 @@ std::any SymbolResolver::visitMulDiv(struct AsgMulDiv* node)
     return {};
 }
 
+std::any SymbolResolver::visitFieldAccess(struct AsgFieldAccess* node)
+{
+    node->function = current_function_;
+    node->list = top_scope_;
+
+    node->accessed->accept(this);
+    return {};
+}
+
 std::any SymbolResolver::visitIndexing(struct AsgIndexing* node)
 {
     node->function = current_function_;

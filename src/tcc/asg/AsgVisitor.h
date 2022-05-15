@@ -16,6 +16,7 @@ struct AsgVisitorBase {
     virtual std::any visitComp(struct AsgComp* node) = 0;
     virtual std::any visitAddSub(struct AsgAddSub* node) = 0;
     virtual std::any visitMulDiv(struct AsgMulDiv* node) = 0;
+    virtual std::any visitFieldAccess(struct AsgFieldAccess* node) = 0;
     virtual std::any visitIndexing(struct AsgIndexing* node) = 0;
     virtual std::any visitOpDeref(struct AsgOpDeref* node) = 0;
     virtual std::any visitOpRef(struct AsgOpRef* node) = 0;

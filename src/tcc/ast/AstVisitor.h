@@ -26,6 +26,7 @@ public:
     std::any visitMulDivExpr(TinyCParser::MulDivExprContext* ctx) override;
     std::any visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx) override;
     std::any visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx) override;
+    std::any visitFieldAccess(TinyCParser::FieldAccessContext* ctx) override;
     std::any visitCallExpr(TinyCParser::CallExprContext* ctx) override;
     std::any visitLiteral(TinyCParser::LiteralContext* ctx) override;
     std::any visitValueReference(TinyCParser::ValueReferenceContext* ctx) override;

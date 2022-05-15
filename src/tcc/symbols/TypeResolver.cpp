@@ -65,13 +65,13 @@ std::any TypeResolver::visitStatementList(struct AsgStatementList* node)
     for (auto* statement : toVisit) {
         statement->accept(this);
     }
-    return Type::invalid();
+    return LRValue{Type::invalid()};
 }
 
 std::any TypeResolver::visitStructDefinition(struct AsgStructDefinition* node)
 {
     UPDATE_VIS(node, nodes_);
-    return Type::invalid();
+    return LRValue{Type::invalid()};
 }
 
 std::any TypeResolver::visitFunctionDefinition(struct AsgFunctionDefinition* node)
@@ -115,8 +115,8 @@ std::any TypeResolver::visitFunctionDefinition(struct AsgFunctionDefinition* nod
     if (node->type->returnType->as<StructType>()) {
         node->body->addLocalVar(getTmpRetName(node->name), node->type->returnType->getRef());
 
-        node->parameters.push_back({node->returnType, getTmpRetName(node->name)});
-        node->type->parameters.push_back(node->type->returnType->getRef());
+        node->parameters.insert(node->parameters.begin(), {node->returnType, getTmpRetName(node->name)});
+        node->type->parameters.insert(node->type->parameters.begin(), node->type->returnType->getRef());
 
         node->type->origRetType = node->type->returnType;
 
@@ -126,7 +126,7 @@ std::any TypeResolver::visitFunctionDefinition(struct AsgFunctionDefinition* nod
 
     node->body->accept(this);
 
-    return Type::invalid();
+    return LRValue{Type::invalid()};
 }
 
 std::any TypeResolver::visitVariableDefinition(struct AsgVariableDefinition* node)
@@ -224,7 +224,7 @@ std::any TypeResolver::visitAssignment(struct AsgAssignment* node)
                 assignableType.type->toString());
         }
         ok_ = false;
-        return Type::invalid();
+        return LRValue{Type::invalid()};
     }
     node->exprType = valueType.type;
     return LRValue{valueType};
@@ -263,7 +263,7 @@ std::any TypeResolver::visitComp(struct AsgComp* node)
                 rhsType->toString());
         }
         ok_ = false;
-        return Type::invalid();
+        return LRValue{Type::invalid()};
     }
     node->exprType = TypeLibrary::inst().get("int");
     return LRValue{node->exprType};
@@ -278,7 +278,7 @@ std::any TypeResolver::visitAddSub(struct AsgAddSub* node)
                 spdlog::error("at line {} -- invalid arithmetic with type {}", node->refLine, t->toString());
             }
             ok_ = false;
-            return Type::invalid();
+            return LRValue{Type::invalid()};
         }
     }
     node->exprType = TypeLibrary::inst().get("int");
@@ -294,11 +294,44 @@ std::any TypeResolver::visitMulDiv(struct AsgMulDiv* node)
                 spdlog::error("at line {} -- invalid arithmetic with type {}", node->refLine, t->toString());
             }
             ok_ = false;
-            return Type::invalid();
+            return LRValue{Type::invalid()};
         }
     }
     node->exprType = TypeLibrary::inst().get("int");
     return LRValue{node->exprType};
+}
+
+std::any TypeResolver::visitFieldAccess(struct AsgFieldAccess* node)
+{
+    UPDATE_VIS(node, nodes_);
+
+    auto accessedT = std::any_cast<LRValue>(node->accessed->accept(this));
+
+    if (!accessedT.type) {
+        return LRValue{Type::invalid()};
+    }
+
+    if (!accessedT.type->as<StructType>()) {
+        spdlog::error(
+            "at line {} -- can not access field of var of type {}",
+            node->refLine,
+            accessedT.type->toString());
+        ok_ = false;
+        return LRValue{Type::invalid()};
+    }
+
+    if (accessedT.type->as<StructType>()->getFieldId(node->field) == -1) {
+        spdlog::error(
+            "at line {} -- type {} has no field {}",
+            node->refLine,
+            accessedT.type->toString(),
+            node->field);
+        ok_ = false;
+        return LRValue{Type::invalid()};
+    }
+
+    node->exprType = accessedT.type->as<StructType>()->getFieldType(node->field);
+    return LRValue{node->exprType, accessedT.side};
 }
 
 std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
@@ -310,7 +343,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
             spdlog::error("at line {} -- invalid indexing of type {}", node->refLine, indexedType->toString());
         }
         ok_ = false;
-        return Type::invalid();
+        return LRValue{Type::invalid()};
     }
     for (auto& index : node->indexes) {
         auto indexType = std::any_cast<LRValue>(index->accept(this)).type;
@@ -322,7 +355,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
                     indexedType->toString());
             }
             ok_ = false;
-            return Type::invalid();
+            return LRValue{Type::invalid()};
         }
     }
 
@@ -334,7 +367,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
                 spdlog::error("at line {} -- invalid indexing: cant index {}", i->refLine, prevType->toString());
             }
             ok_ = false;
-            return Type::invalid();
+            return LRValue{Type::invalid()};
         }
         prevType = indexedType;
         indexedType = indexedType->as<ArrayType>()->getIndexed();
@@ -361,7 +394,7 @@ std::any TypeResolver::visitOpDeref(struct AsgOpDeref* node)
                 spdlog::error("at line {} -- cant deref {}", node->refLine, prevT->toString());
             }
             ok_ = false;
-            return Type::invalid();
+            return LRValue{Type::invalid()};
         }
         prevT = t;
         t = t->as<PtrType>()->getDeref();
@@ -423,12 +456,12 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
             origParamCount,
             node->arguments.size());
         ok_ = false;
-        return Type::invalid();
+        return LRValue{Type::invalid()};
     }
     for (auto i = 0; i < node->arguments.size(); i++) {
 
         auto argT = std::any_cast<LRValue>(node->arguments[i]->accept(this)).type;
-        auto realParamT = node->callee->parameters[i];
+        auto realParamT = node->callee->parameters[node->callee->origRetType ? i + 1 : i];
 
         if (!argT) {
             return LRValue{Type::invalid()};
@@ -448,7 +481,7 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
                     argT->toString());
             }
             ok_ = false;
-            return Type::invalid();
+            return LRValue{Type::invalid()};
         }
 
         if (argT->as<StructType>()) {
@@ -498,7 +531,7 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
             refOp->value = std::move(varNode);
         }
 
-        node->arguments.push_back(std::move(refOp));
+        node->arguments.insert(node->arguments.begin(), std::move(refOp));
 
         node->list->statements.insert(
             std::find_if(

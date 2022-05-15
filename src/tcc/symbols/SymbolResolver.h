@@ -31,6 +31,7 @@ private:
     std::any visitComp(struct AsgComp* node) override;
     std::any visitAddSub(struct AsgAddSub* node) override;
     std::any visitMulDiv(struct AsgMulDiv* node) override;
+    std::any visitFieldAccess(struct AsgFieldAccess* node) override;
     std::any visitIndexing(struct AsgIndexing* node) override;
     std::any visitOpDeref(struct AsgOpDeref* node) override;
     std::any visitOpRef(struct AsgOpRef* node) override;

@@ -172,6 +172,19 @@ void AsgMulDiv::updateChild(AsgNode* from, AsgNode* to)
     }
 }
 
+std::any AsgFieldAccess::accept(AsgVisitorBase* visitor)
+{
+    return visitor->visitFieldAccess(this);
+}
+
+void AsgFieldAccess::updateChild(AsgNode* from, AsgNode* to)
+{
+    if (accessed.get() == from) {
+        UNUSED(accessed.release());
+        accessed.reset(to);
+    }
+}
+
 std::any AsgIndexing::accept(AsgVisitorBase* visitor)
 {
     return visitor->visitIndexing(this);

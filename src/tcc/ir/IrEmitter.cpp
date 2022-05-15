@@ -120,6 +120,11 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
         }
     }
 
+    if (node->type->origRetType) {
+        function->args().begin()->addAttr(llvm::Attribute::getWithStructRetType(
+            *context_, node->type->origRetType->getLLVMType(*context_, 0)));
+    }
+
     if (node->type->returnType == TypeLibrary::inst().get("void")) {
         // ToDo: kill it with fire
         auto* topLevelList = (AsgStatementList*)node->body.get();
@@ -202,7 +207,8 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
             value->getPointerAlignment(module_->getDataLayout()),
             value,
             value->getPointerAlignment(module_->getDataLayout()),
-            assignableType->getLLVMType(*context_, curr_function_->getAddressSpace())->getScalarSizeInBits() / 8);
+            module_->getDataLayout().getTypeAllocSize(
+                assignableType->getLLVMType(*context_, curr_function_->getAddressSpace())));
     }
 
     expected_ret_.push(RetType::Data);
@@ -366,6 +372,35 @@ std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
         }
     }
     return (llvm::Value*)last;
+}
+
+std::any IrEmitter::visitFieldAccess(struct AsgFieldAccess* node)
+{
+    expected_ret_.push(RetType::Ptr);
+
+    auto* accessed = std::any_cast<llvm::Value*>(node->accessed->accept(this));
+
+    expected_ret_.pop();
+
+    auto* st = node->accessed->exprType->as<StructType>();
+
+    std::array<llvm::Value*, 2> indexes{};
+
+    indexes[0] = llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), 0);
+    indexes[1] = llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), st->getFieldId(node->field));
+
+    auto* elemPtr = builder_->CreateInBoundsGEP(
+        st->getLLVMType(*context_, curr_function_->getAddressSpace()),
+        accessed,
+        indexes);
+
+    if (expected_ret_.top() == RetType::Ptr) {
+        return elemPtr;
+    }
+
+    return (llvm::Value*)builder_->CreateLoad(
+        st->getFieldType(node->field)->getLLVMType(*context_, curr_function_->getAddressSpace()),
+        elemPtr);
 }
 
 std::any IrEmitter::visitIndexing(struct AsgIndexing* node)

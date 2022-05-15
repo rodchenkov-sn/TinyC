@@ -334,14 +334,54 @@ std::any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx
 std::any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx)
 {
     if (ctx->ASTERISK().empty()) {
-        return visit(ctx->indexedOperand());
+        return visit(ctx->fieldAccess());
     }
 
     auto node = std::make_unique<AsgOpDeref>();
     node->refLine = ctx->start->getLine();
     node->derefCount = ctx->ASTERISK().size();
-    node->expression.reset(std::any_cast<AsgNode*>(visit(ctx->indexedOperand())));
+    node->expression.reset(std::any_cast<AsgNode*>(visit(ctx->fieldAccess())));
     return (AsgNode*)node.release();
+}
+
+std::any AstVisitor::visitFieldAccess(TinyCParser::FieldAccessContext* ctx)
+{
+    if (ctx->fieldAccessOp().empty()) {
+        return visit(ctx->indexedOperand());
+    }
+
+    auto accessed = std::any_cast<AsgNode*>(visit(ctx->indexedOperand()));
+    for (auto* access : ctx->fieldAccessOp()) {
+        if (access->ARROW()) {
+            auto derefNode = std::make_unique<AsgOpDeref>();
+            derefNode->refLine = access->getStart()->getLine();
+            derefNode->derefCount = 1;
+            derefNode->expression.reset(accessed);
+            accessed = derefNode.release();
+        }
+
+        auto accNode = std::make_unique<AsgFieldAccess>();
+        accNode->refLine = access->getStart()->getLine();
+        accNode->field = access->IDENTIFIER()->getText();
+        accNode->accessed.reset(accessed);
+
+        if (access->indexing().empty()) {
+            accessed = accNode.release();
+            continue;
+        }
+
+        auto indexingNode = std::make_unique<AsgIndexing>();
+        indexingNode->refLine = access->getStart()->getLine();
+        indexingNode->indexed = std::move(accNode);
+
+        for (auto* index : access->indexing()) {
+            indexingNode->indexes.emplace_back(std::any_cast<AsgNode*>(visit(index->expression())));
+        }
+
+        accessed = indexingNode.release();
+    }
+
+    return accessed;
 }
 
 std::any AstVisitor::visitValueReference(TinyCParser::ValueReferenceContext* ctx)

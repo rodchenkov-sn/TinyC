@@ -162,6 +162,14 @@ struct AsgMulDiv : AsgNode {
     std::vector<Subexpression> subexpressions;
 };
 
+struct AsgFieldAccess : AsgNode {
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
+
+    std::string field;
+    std::unique_ptr<AsgNode> accessed;
+};
+
 struct AsgIndexing : AsgNode {
     std::any accept(AsgVisitorBase* visitor) override;
     void updateChild(AsgNode* from, AsgNode* to) override;
