@@ -11,10 +11,11 @@
 #include "pipeline/Pipeline.h"
 #include "symbols/SymbolResolver.h"
 #include "symbols/TypeResolver.h"
+#include "version/Version.h"
 
 int main(int argc, char** argv)
 {
-    argparse::ArgumentParser program{"tcc"};
+    argparse::ArgumentParser program{"tcc", getVersion()};
 
     program.add_argument("input")
         .help("specify the input file")

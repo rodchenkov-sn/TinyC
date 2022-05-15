@@ -858,7 +858,7 @@ public:
                     .nargs(0);
         }
         if ((add_args & default_arguments::version) == default_arguments::version) {
-            add_argument("-v", "--version")
+            add_argument("--version")
                     .action([&](const auto &/*unused*/) {
                         std::cout << m_version << std::endl;
                         std::exit(0);
