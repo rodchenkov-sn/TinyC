@@ -1,6 +1,8 @@
 #ifndef TINYC_TYPERESOLVER_H
 #define TINYC_TYPERESOLVER_H
 
+#include <deque>
+
 #include "asg/AsgNode.h"
 #include "asg/AsgVisitor.h"
 #include "pipeline/PipelineStage.h"
@@ -30,6 +32,9 @@ private:
     std::any visitIntLiteral(struct AsgIntLiteral* node) override;
 
     bool ok_ = true;
+    int next_unique_tmp_ = 0;
+
+    std::deque<AsgNode*> nodes_;
 };
 
 #endif

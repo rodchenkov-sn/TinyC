@@ -5,6 +5,37 @@
 #include "FunctionLib.h"
 #include "TypeLib.h"
 
+struct VisUpdater {
+    VisUpdater(AsgNode* n, std::deque<AsgNode*>& ns)
+        : ns(ns)
+    {
+        ns.push_back(n);
+    }
+
+    ~VisUpdater()
+    {
+        ns.pop_back();
+    }
+
+    std::deque<AsgNode*>& ns;
+};
+
+#define UPDATE_VIS(n, ns)           \
+    VisUpdater visUpdater##__LINE__ \
+    {                               \
+        (n), (ns)                   \
+    }
+
+static std::string getTmpRetName(const std::string& funName)
+{
+    return "." + funName + "_ret";
+}
+
+static std::string getTmpParamName(const std::string& origName)
+{
+    return "." + origName + "_par";
+}
+
 std::any TypeResolver::modify(std::any data)
 {
     if (data.type() != typeid(AsgNode*)) {
@@ -21,7 +52,17 @@ std::any TypeResolver::modify(std::any data)
 
 std::any TypeResolver::visitStatementList(struct AsgStatementList* node)
 {
-    for (auto& statement : node->statements) {
+    UPDATE_VIS(node, nodes_);
+
+    std::vector<AsgNode*> toVisit;
+
+    std::transform(
+        node->statements.begin(),
+        node->statements.end(),
+        std::back_inserter(toVisit),
+        [](const std::unique_ptr<AsgNode>& n) { return n.get(); });
+
+    for (auto* statement : toVisit) {
         statement->accept(this);
     }
     return Type::invalid();
@@ -29,17 +70,68 @@ std::any TypeResolver::visitStatementList(struct AsgStatementList* node)
 
 std::any TypeResolver::visitStructDefinition(struct AsgStructDefinition* node)
 {
+    UPDATE_VIS(node, nodes_);
     return Type::invalid();
 }
 
 std::any TypeResolver::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 {
+    UPDATE_VIS(node, nodes_);
+    for (auto i = 0; i < node->parameters.size(); i++) {
+        if (node->type->parameters[i]->as<StructType>()) {
+            auto origName = node->parameters[i].name;
+            auto origTypeStr = node->parameters[i].type;
+
+            node->type->parameters[i] = node->type->parameters[i]->getRef();
+            node->parameters[i].type.push_back('*');
+            node->parameters[i].name = getTmpParamName(node->parameters[i].name);
+
+            node->body->addLocalVar(node->parameters[i].name, node->type->parameters[i]);
+
+            auto defNode = std::make_unique<AsgVariableDefinition>();
+            defNode->name = origName;
+            defNode->type = origTypeStr;
+            defNode->list = (AsgStatementList*)node->body.get();
+            defNode->function = node;
+
+            auto derefOp = std::make_unique<AsgOpDeref>();
+            derefOp->derefCount = 1;
+            derefOp->list = (AsgStatementList*)node->body.get();
+            derefOp->function = node;
+
+            auto varNode = std::make_unique<AsgVariable>();
+            varNode->name = node->parameters[i].name;
+            varNode->list = (AsgStatementList*)node->body.get();
+            varNode->function = node;
+
+            derefOp->expression = std::move(varNode);
+            defNode->value = std::move(derefOp);
+
+            auto* stList = (AsgStatementList*)node->body.get();
+            stList->statements.insert(stList->statements.begin(), std::move(defNode));
+        }
+    }
+
+    if (node->type->returnType->as<StructType>()) {
+        node->body->addLocalVar(getTmpRetName(node->name), node->type->returnType->getRef());
+
+        node->parameters.push_back({node->returnType, getTmpRetName(node->name)});
+        node->type->parameters.push_back(node->type->returnType->getRef());
+
+        node->type->origRetType = node->type->returnType;
+
+        node->type->returnType = TypeLibrary::inst().get("void");
+        node->returnType = "void";
+    }
+
     node->body->accept(this);
+
     return Type::invalid();
 }
 
 std::any TypeResolver::visitVariableDefinition(struct AsgVariableDefinition* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto nodeType = TypeLibrary::inst().get(node->type);
     if (node->value) {
         auto valueType = std::any_cast<Type::Id>(node->value->accept(this));
@@ -59,7 +151,11 @@ std::any TypeResolver::visitVariableDefinition(struct AsgVariableDefinition* nod
 
 std::any TypeResolver::visitReturn(struct AsgReturn* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto expected = node->function->type->returnType;
+    if (node->function->type->origRetType) {
+        expected = node->function->type->origRetType;
+    }
     auto real = std::any_cast<Type::Id>(node->value->accept(this));
     if (!Type::isSame(real, expected)) {
         if (real && expected) {
@@ -71,11 +167,43 @@ std::any TypeResolver::visitReturn(struct AsgReturn* node)
         }
         ok_ = false;
     }
+
+    if (node->function->type->origRetType) {
+        auto assignNode = std::make_unique<AsgAssignment>();
+        assignNode->list = node->list;
+        assignNode->function = node->function;
+        assignNode->exprType = node->function->type->origRetType;
+
+        auto assignable = std::make_unique<AsgOpDeref>();
+        assignable->list = node->list;
+        assignable->function = node->function;
+        assignable->derefCount = 1;
+        assignable->exprType = node->function->type->origRetType;
+
+        auto var = std::make_unique<AsgVariable>();
+        var->list = node->list;
+        var->function = node->function;
+        var->exprType = node->function->type->origRetType->getRef();
+        var->name = getTmpRetName(node->function->name);
+
+        assignable->expression = std::move(var);
+        assignNode->assignable = std::move(assignable);
+        assignNode->value.swap(node->value);
+
+        node->list->statements.insert(
+            std::find_if(
+                node->list->statements.begin(),
+                node->list->statements.end(),
+                [&](const std::unique_ptr<AsgNode>& n) { return n.get() == node; }),
+            std::move(assignNode));
+    }
+
     return Type::invalid();
 }
 
 std::any TypeResolver::visitAssignment(struct AsgAssignment* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto valueType = std::any_cast<Type::Id>(node->value->accept(this));
     auto assignableType = std::any_cast<Type::Id>(node->assignable->accept(this));
     if (!Type::isSame(valueType, assignableType)) {
@@ -95,6 +223,7 @@ std::any TypeResolver::visitAssignment(struct AsgAssignment* node)
 
 std::any TypeResolver::visitConditional(struct AsgConditional* node)
 {
+    UPDATE_VIS(node, nodes_);
     node->condition->accept(this);
     node->thenNode->accept(this);
     if (node->elseNode) {
@@ -105,6 +234,7 @@ std::any TypeResolver::visitConditional(struct AsgConditional* node)
 
 std::any TypeResolver::visitLoop(struct AsgLoop* node)
 {
+    UPDATE_VIS(node, nodes_);
     node->condition->accept(this);
     node->body->accept(this);
     return Type::invalid();
@@ -112,6 +242,7 @@ std::any TypeResolver::visitLoop(struct AsgLoop* node)
 
 std::any TypeResolver::visitComp(struct AsgComp* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto lhsType = std::any_cast<Type::Id>(node->lhs->accept(this));
     auto rhsType = std::any_cast<Type::Id>(node->rhs->accept(this));
     if (!Type::isSame(lhsType, rhsType)) {
@@ -131,6 +262,7 @@ std::any TypeResolver::visitComp(struct AsgComp* node)
 
 std::any TypeResolver::visitAddSub(struct AsgAddSub* node)
 {
+    UPDATE_VIS(node, nodes_);
     for (auto& expr : node->subexpressions) {
         if (auto t = std::any_cast<Type::Id>(expr.expression->accept(this)); t != TypeLibrary::inst().get("int")) {
             if (t) {
@@ -146,6 +278,7 @@ std::any TypeResolver::visitAddSub(struct AsgAddSub* node)
 
 std::any TypeResolver::visitMulDiv(struct AsgMulDiv* node)
 {
+    UPDATE_VIS(node, nodes_);
     for (auto& expr : node->subexpressions) {
         if (auto t = std::any_cast<Type::Id>(expr.expression->accept(this)); t != TypeLibrary::inst().get("int")) {
             if (t) {
@@ -161,6 +294,7 @@ std::any TypeResolver::visitMulDiv(struct AsgMulDiv* node)
 
 std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto indexedType = std::any_cast<Type::Id>(node->indexed->accept(this));
     if (!indexedType || !indexedType->as<ArrayType>()) {
         if (indexedType) {
@@ -203,6 +337,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
 
 std::any TypeResolver::visitOpDeref(struct AsgOpDeref* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto t = std::any_cast<Type::Id>(node->expression->accept(this));
 
     auto prevT = t;
@@ -225,6 +360,7 @@ std::any TypeResolver::visitOpDeref(struct AsgOpDeref* node)
 
 std::any TypeResolver::visitOpRef(struct AsgOpRef* node)
 {
+    UPDATE_VIS(node, nodes_);
     auto t = std::any_cast<Type::Id>(node->value->accept(this));
     node->exprType = t->getRef();
     return node->exprType;
@@ -232,6 +368,7 @@ std::any TypeResolver::visitOpRef(struct AsgOpRef* node)
 
 std::any TypeResolver::visitVariable(struct AsgVariable* node)
 {
+    UPDATE_VIS(node, nodes_);
     const AsgStatementList* list = node->list;
     while (list) {
         if (list->localVariables.find(node->name) != list->localVariables.end()) {
@@ -245,19 +382,32 @@ std::any TypeResolver::visitVariable(struct AsgVariable* node)
 
 std::any TypeResolver::visitCall(struct AsgCall* node)
 {
-    if (node->callee->parameters.size() != node->arguments.size()) {
+    UPDATE_VIS(node, nodes_);
+
+    const auto origParamCount = node->callee->origRetType
+                                  ? node->callee->parameters.size() - 1
+                                  : node->callee->parameters.size();
+
+    if (origParamCount != node->arguments.size()) {
         spdlog::error(
             "at line {} -- invalid {} call arg count: expected: {}, got: {}",
             node->refLine,
             node->functionName,
-            node->callee->parameters.size(),
+            origParamCount,
             node->arguments.size());
         ok_ = false;
         return Type::invalid();
     }
     for (auto i = 0; i < node->arguments.size(); i++) {
+
         auto argT = std::any_cast<Type::Id>(node->arguments[i]->accept(this));
-        if (!Type::isSame(node->callee->parameters[i], argT)) {
+        auto realParamT = node->callee->parameters[i];
+
+        if (argT->as<StructType>()) {
+            realParamT = node->callee->parameters[i]->as<PtrType>()->getDeref();
+        }
+
+        if (!Type::isSame(realParamT, argT)) {
             if (argT) {
                 spdlog::error(
                     "at line {} -- invalid arg #{} type: expected: {}, got: {}",
@@ -269,14 +419,80 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
             ok_ = false;
             return Type::invalid();
         }
+
+        if (argT->as<StructType>()) {
+            auto refNode = std::make_unique<AsgOpRef>();
+            refNode->list = node->list;
+            refNode->function = node->function;
+            refNode->value = std::move(node->arguments[i]);
+            node->arguments[i] = std::move(refNode);
+            node->arguments[i]->accept(this);
+        }
     }
 
-    node->exprType = node->callee->returnType;
+    if (node->callee->origRetType) {
+        nodes_.pop_back();
+
+        auto tmpName = "." + std::to_string(next_unique_tmp_++) + "_ret_val";
+        auto declNode = std::make_unique<AsgVariableDefinition>();
+        declNode->list = node->list;
+        declNode->function = node->function;
+        declNode->type = node->callee->origRetType->toString();
+        declNode->name = tmpName;
+        node->list->statements.insert(node->list->statements.begin(), std::move(declNode));
+
+        node->addLocalVar(tmpName, node->callee->origRetType);
+
+        {
+            auto varNode = std::make_unique<AsgVariable>();
+            varNode->list = node->list;
+            varNode->function = node->function;
+            varNode->exprType = node->callee->origRetType;
+            varNode->name = tmpName;
+
+            nodes_.back()->updateChild(node, varNode.release());
+        }
+
+        auto refOp = std::make_unique<AsgOpRef>();
+        refOp->list = node->list;
+        refOp->function = node->function;
+        refOp->exprType = node->callee->origRetType->getRef();
+
+        {
+            auto varNode = std::make_unique<AsgVariable>();
+            varNode->list = node->list;
+            varNode->function = node->function;
+            varNode->exprType = node->callee->origRetType;
+            varNode->name = tmpName;
+            refOp->value = std::move(varNode);
+        }
+
+        node->arguments.push_back(std::move(refOp));
+
+        node->list->statements.insert(
+            std::find_if(
+                node->list->statements.begin(),
+                node->list->statements.end(),
+                [&](const std::unique_ptr<AsgNode>& n) {
+                    for (auto p = nodes_.rbegin(); p != nodes_.rend(); p++) {
+                        if (*p == n.get()) {
+                            return true;
+                        }
+                    }
+                    return false;
+                }),
+            std::unique_ptr<AsgNode>(node));
+
+        nodes_.push_back(node);
+    }
+
+    node->exprType = node->callee->origRetType ? node->callee->origRetType : node->callee->returnType;
     return node->exprType;
 }
 
 std::any TypeResolver::visitIntLiteral(struct AsgIntLiteral* node)
 {
+    UPDATE_VIS(node, nodes_);
     node->exprType = TypeLibrary::inst().get("int");
     return node->exprType;
 }

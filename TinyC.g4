@@ -25,7 +25,7 @@ function
     ;
 
 type
-    :   typeName ASTERISK*
+    :   STRUCT? typeName ASTERISK*
     ;
 
 parameters
@@ -186,7 +186,7 @@ INT_LITERAL
     :   DIGID+
     ;
 
-fragment 
+fragment
 NONDIGID
     :   [a-zA-Z_]
     ;
@@ -221,7 +221,7 @@ GREATEREQUAL : '>=';
 
 
 WHITESPACE
-    :   [ \t]+ 
+    :   [ \t]+
     -> skip
     ;
 

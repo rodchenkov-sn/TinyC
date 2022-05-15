@@ -98,6 +98,8 @@ int main(int argc, char** argv)
         spdlog::error("compilation failed due to errors");
         return EXIT_FAILURE;
     }
-    spdlog::info("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
+    if (!program.get<bool>("-p")) {
+        spdlog::info("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
+    }
     return EXIT_SUCCESS;
 }

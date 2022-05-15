@@ -292,8 +292,8 @@ std::any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx
 
     auto node = std::make_unique<AsgComp>();
     node->refLine = ctx->start->getLine();
-    node->lhs = lhs;
-    node->rhs = rhs;
+    node->lhs.reset(lhs);
+    node->rhs.reset(rhs);
     node->op = op;
 
     return (AsgNode*)node.release();
