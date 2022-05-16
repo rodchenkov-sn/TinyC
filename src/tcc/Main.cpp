@@ -1,16 +1,21 @@
 #include <iostream>
 
-#include "argparse/argparse.hpp"
-#include "asg/AsgNode.h"
+#include <argparse/argparse.hpp>
+#include <spdlog/spdlog.h>
+
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
+#include "pipeline/input/FileReader.h"
+#include "pipeline/output/FileWriter.h"
+#include "pipeline/output/TerminalWriter.h"
+#include "pipeline/Pipeline.h"
 #include "symbols/SymbolResolver.h"
-#include "TinyCLexer.h"
-#include "TinyCParser.h"
+#include "symbols/TypeResolver.h"
+#include "version/Version.h"
 
 int main(int argc, char** argv)
 {
-    argparse::ArgumentParser program{"tcc"};
+    argparse::ArgumentParser program{"tcc", getVersion()};
 
     program.add_argument("input")
         .help("specify the input file")
@@ -25,6 +30,16 @@ int main(int argc, char** argv)
         .default_value(false)
         .implicit_value(true);
 
+    program.add_argument("-p", "--print")
+        .help("print IR to stdout instead of creating output file")
+        .default_value(false)
+        .implicit_value(true);
+
+    program.add_argument("-v", "--verbose")
+        .help("print additional info during compilation")
+        .default_value(false)
+        .implicit_value(true);
+
     try {
         program.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
@@ -33,35 +48,18 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    std::ifstream file;
+    spdlog::set_pattern("%^[%l]%$ %v");
+
+    if (program.get<bool>("-v")) {
+        spdlog::set_level(spdlog::level::info);
+    } else {
+        spdlog::set_level(spdlog::level::warn);
+    }
+
     auto inputFileName = program.get<std::string>("input");
-    file.open(inputFileName);
-
-    if (!file.is_open()) {
-        std::cerr << "could not open file " << program.get<std::string>("input");
-        return EXIT_FAILURE;
-    }
-
-    antlr4::ANTLRInputStream inputStream{file};
-    TinyCLexer lexer{&inputStream};
-    antlr4::CommonTokenStream tokens{&lexer};
-    TinyCParser parser{&tokens};
-    TinyCParser::TranslationUnitContext* context = parser.translationUnit();
-
-    AstVisitor visitor;
-    auto* root = std::any_cast<AsgNode*>(visitor.visitTranslationUnit(context));
-
-    SymbolResolver resolver;
-    if (!resolver.resolve(root)) {
-        for (auto& errorStream : resolver.getErrors()) {
-            std::cerr << errorStream.str() << "\n";
-        }
-        return EXIT_FAILURE;
-    }
 
     auto moduleName = inputFileName;
     auto lastPathChar = moduleName.find_last_of('/');
-
     if (lastPathChar == std::string::npos) {
         lastPathChar = moduleName.find_last_of('\\');
     } else {
@@ -70,16 +68,18 @@ int main(int argc, char** argv)
             lastPathChar = l;
         }
     }
-
     if (lastPathChar != std::string::npos) {
         moduleName.erase(0, lastPathChar + 1);
     }
 
-    IrEmitter emitter;
-    auto module = emitter.emit(
-        root,
-        moduleName,
-        !program.get<bool>("--no-opt"));
+    Pipeline pipeline;
+
+    pipeline
+        .add(std::make_unique<FileReader>(program.get<std::string>("input")))
+        .add(std::make_unique<AstVisitor>())
+        .add(std::make_unique<SymbolResolver>())
+        .add(std::make_unique<TypeResolver>())
+        .add(std::make_unique<IrEmitter>(moduleName, !program.get<bool>("--no-opt")));
 
     auto outputName = program.get<std::string>("-o");
     if (outputName.empty()) {
@@ -89,17 +89,18 @@ int main(int argc, char** argv)
                    + ".ll";
     }
 
-    std::error_code ec;
-    llvm::raw_fd_ostream ostream{outputName, ec};
-
-    if (ec) {
-        std::cerr << ec.message();
-        return EXIT_FAILURE;
+    if (program.get<bool>("-p")) {
+        pipeline.add(std::make_unique<TerminalWriter>());
+    } else {
+        pipeline.add(std::make_unique<FileWriter>(outputName));
     }
 
-    module->print(ostream, nullptr);
-
-    ostream.close();
-
+    if (!pipeline.run()) {
+        spdlog::error("compilation failed due to errors");
+        return EXIT_FAILURE;
+    }
+    if (!program.get<bool>("-p")) {
+        spdlog::info("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
+    }
     return EXIT_SUCCESS;
 }

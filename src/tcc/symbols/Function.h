@@ -9,9 +9,10 @@
 struct Function {
     std::string name;
     Type::Id returnType;
+    Type::Id origRetType = Type::invalid();
     std::vector<Type::Id> parameters;
 };
 
-using FunctionId = const Function*;
+using FunctionId = Function*;
 
 #endif

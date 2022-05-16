@@ -1,15 +1,31 @@
 grammar TinyC;
 
 translationUnit
-    :   function+ EOF
+    :   entity+ EOF
     ;
+
+entity
+    :   function
+    |   struct
+    ;
+
+
+struct
+    :   STRUCT IDENTIFIER L_BRACE structField+ R_BRACE SEMICOLON
+    ;
+
+
+structField
+    :   type IDENTIFIER constantIndexing* SEMICOLON
+    ;
+
 
 function
     :   type functionName L_PARAN parameters? R_PARAN statements
     ;
 
 type
-    :   typeName ASTERISK*
+    :   STRUCT? typeName ASTERISK*
     ;
 
 parameters
@@ -50,11 +66,7 @@ variableDecl
     ;
 
 assignment
-    :   assignable EQUAL expression
-    ;
-
-assignable
-    :   ASTERISK* variableName indexing*
+    :   operandDereference EQUAL expression
     ;
 
 returnStatement
@@ -90,7 +102,15 @@ mulDivExpr
     ;
 
 operandDereference
-    :   ASTERISK* indexedOperand
+    :   ASTERISK* fieldAccess
+    ;
+
+fieldAccess
+    :   indexedOperand fieldAccessOp*
+    ;
+
+fieldAccessOp
+    :   ( DOT | ARROW ) IDENTIFIER indexing*
     ;
 
 indexedOperand
@@ -159,6 +179,7 @@ IF     : 'if';
 ELSE   : 'else';
 WHILE  : 'while';
 FOR    : 'for';
+STRUCT : 'struct';
 
 
 IDENTIFIER
@@ -169,7 +190,7 @@ INT_LITERAL
     :   DIGID+
     ;
 
-fragment 
+fragment
 NONDIGID
     :   [a-zA-Z_]
     ;
@@ -194,6 +215,8 @@ PLUS      : '+';
 MINUS     : '-';
 SLASH     : '/';
 AMPERSAND : '&';
+DOT       : '.';
+ARROW     : '->';
 
 EQUALEQUAL   : '==';
 NOTEQUAL     : '!=';
@@ -204,7 +227,7 @@ GREATEREQUAL : '>=';
 
 
 WHITESPACE
-    :   [ \t]+ 
+    :   [ \t]+
     -> skip
     ;
 

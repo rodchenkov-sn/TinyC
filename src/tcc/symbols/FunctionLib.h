@@ -11,7 +11,7 @@ class FunctionLibrary {
 public:
     static FunctionLibrary& inst();
 
-    FunctionId get(const std::string& name) const;
+    FunctionId get(const std::string& name);
     FunctionId add(const Function& function);
 
 private:

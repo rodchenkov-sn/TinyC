@@ -8,58 +8,74 @@
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/OptimizationLevel.h>
 #include <llvm/Passes/PassBuilder.h>
+#include <spdlog/spdlog.h>
 
 #include "symbols/TypeLib.h"
+#include "utils/Defs.h"
 
-std::unique_ptr<llvm::Module> IrEmitter::emit(AsgNode* root, std::string_view moduleName, bool optimize)
+IrEmitter::IrEmitter(std::string moduleName, bool optimize)
+    : module_name_(std::move(moduleName))
+    , optimize_(optimize)
 {
+}
+
+std::any IrEmitter::modify(std::any data)
+{
+    if (data.type() != typeid(AsgNode*)) {
+        spdlog::critical("Unexpected data type passed to IrEmitter -- expected AsgNode*");
+        return {};
+    }
+    auto* root = std::any_cast<AsgNode*>(data);
+
     context_ = std::make_unique<llvm::LLVMContext>();
-    module_ = std::make_unique<llvm::Module>(moduleName, *context_);
+    module_ = std::make_unique<llvm::Module>(module_name_, *context_);
     builder_ = std::make_unique<llvm::IRBuilder<>>(*context_);
 
     root->accept(this);
+    delete root;
 
-    llvm::verifyModule(*module_, &llvm::errs());
+    if (llvm::verifyModule(*module_, &llvm::errs())) {
+        spdlog::critical("invalid module was emitted by IrEmitter");
+        ok_ = false;
+    }
 
-    if (optimize) {
+    if (optimize_ && ok_) {
         llvm::LoopAnalysisManager LAM;
         llvm::FunctionAnalysisManager FAM;
         llvm::CGSCCAnalysisManager CGAM;
         llvm::ModuleAnalysisManager MAM;
-
         llvm::PassBuilder PB;
-
         PB.registerModuleAnalyses(MAM);
         PB.registerCGSCCAnalyses(CGAM);
         PB.registerFunctionAnalyses(FAM);
         PB.registerLoopAnalyses(LAM);
         PB.crossRegisterProxies(LAM, FAM, CGAM, MAM);
-
         llvm::ModulePassManager MPM = PB.buildPerModuleDefaultPipeline(llvm::OptimizationLevel::O2);
-
         MPM.run(*module_, MAM);
     }
 
-    std::unique_ptr<llvm::Module> r;
-    r.swap(module_);
+    if (!ok_) {
+        return {};
+    }
 
-    return r;
+    return module_.release();
 }
 
 std::any IrEmitter::visitStatementList(struct AsgStatementList* node)
 {
-    if (node->parent) {
-        scopes_.emplace_back();
-    }
+    scopes_.emplace_back();
 
     for (auto& statement : node->statements) {
         statement->accept(this);
     }
 
-    if (node->parent) {
-        scopes_.pop_back();
-    }
+    scopes_.pop_back();
 
+    return {};
+}
+
+std::any IrEmitter::visitStructDefinition(struct AsgStructDefinition* node)
+{
     return {};
 }
 
@@ -97,25 +113,36 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
             param.setName(paramName + "_arg");
 
             llvm::AllocaInst* alloca = makeAlloca(paramName, param.getType());
+            alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
             builder_->CreateStore(&param, alloca);
 
             scopes_.back().insert({paramName, alloca});
         }
     }
 
+    if (node->type->origRetType) {
+        function->args().begin()->addAttr(llvm::Attribute::getWithStructRetType(
+            *context_, node->type->origRetType->getLLVMType(*context_, 0)));
+    }
+
     if (node->type->returnType == TypeLibrary::inst().get("void")) {
         // ToDo: kill it with fire
         auto* topLevelList = (AsgStatementList*)node->body.get();
-        topLevelList->statements.push_back(std::make_unique<AsgReturn>());
+        if (!dynamic_cast<AsgReturn*>(topLevelList->statements.back().get())) {
+            topLevelList->statements.push_back(std::make_unique<AsgReturn>());
+        }
     }
 
     node->body->accept(this);
 
-    llvm::verifyFunction(*function, &llvm::errs());
+    if (llvm::verifyFunction(*function, &llvm::errs())) {
+        spdlog::critical("invalid function {} was emitted by IrEmitter", node->name);
+        ok_ = false;
+    }
 
     scopes_.pop_back();
     expected_ret_.pop();
-    assert(expected_ret_.empty());
+    ASSERT(expected_ret_.empty());
 
     curr_function_ = nullptr;
     return {};
@@ -131,16 +158,13 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
 
     if (node->value) {
         expected_ret_.push(RetType::Data);
-        if (type_calculator_.calculate(node->value.get()) != varType) {
-            std::cerr << "invalid type conversion at " << node->name << " def\n";
-        }
         auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
         alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         builder_->CreateStore(value, alloca);
         expected_ret_.pop();
     }
 
-    return (llvm::Value*)builder_->CreateLoad(varType->getLLVMType(*context_, curr_function_->getAddressSpace()), alloca);
+    return {};
 }
 
 std::any IrEmitter::visitReturn(struct AsgReturn* node)
@@ -154,7 +178,7 @@ std::any IrEmitter::visitReturn(struct AsgReturn* node)
     auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
     expected_ret_.pop();
 
-    auto retType = type_calculator_.calculate(node->value.get());
+    auto retType = node->value->exprType;
 
     if (retType != node->function->type->returnType) {
         std::cerr << "invalid return type in " << node->function->name << "\n";
@@ -167,14 +191,29 @@ std::any IrEmitter::visitReturn(struct AsgReturn* node)
 
 std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
 {
-    expected_ret_.push(RetType::Data);
-    auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
-    auto valType = type_calculator_.calculate(node->value.get());
-    expected_ret_.pop();
-
     expected_ret_.push(RetType::Ptr);
     auto* assignable = std::any_cast<llvm::Value*>(node->assignable->accept(this));
-    auto assignableType = type_calculator_.calculate(node->assignable.get());
+    auto assignableType = node->assignable->exprType;
+    expected_ret_.pop();
+
+    if (assignableType->as<StructType>()) {
+        expected_ret_.push(RetType::Ptr);
+        auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
+        auto valType = node->value->exprType;
+        expected_ret_.pop();
+
+        return builder_->CreateMemCpy(
+            assignable,
+            value->getPointerAlignment(module_->getDataLayout()),
+            value,
+            value->getPointerAlignment(module_->getDataLayout()),
+            module_->getDataLayout().getTypeAllocSize(
+                assignableType->getLLVMType(*context_, curr_function_->getAddressSpace())));
+    }
+
+    expected_ret_.push(RetType::Data);
+    auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
+    auto valType = node->value->exprType;
     expected_ret_.pop();
 
     assignable->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
@@ -301,13 +340,13 @@ std::any IrEmitter::visitComp(struct AsgComp* node)
         break;
     }
 
-    assert(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     return builder_->CreateIntCast(i1Val, llvm::Type::getInt32Ty(*context_), false);
 }
 
 std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 {
-    assert(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     auto* last = std::any_cast<llvm::Value*>(node->subexpressions[0].expression->accept(this));
     for (auto i = 1; i < node->subexpressions.size(); i++) {
         auto* curr = std::any_cast<llvm::Value*>(node->subexpressions[i].expression->accept(this));
@@ -322,7 +361,7 @@ std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 
 std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
 {
-    assert(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     auto* last = std::any_cast<llvm::Value*>(node->subexpressions[0].expression->accept(this));
     for (auto i = 1; i < node->subexpressions.size(); i++) {
         auto* curr = std::any_cast<llvm::Value*>(node->subexpressions[i].expression->accept(this));
@@ -335,6 +374,35 @@ std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
     return (llvm::Value*)last;
 }
 
+std::any IrEmitter::visitFieldAccess(struct AsgFieldAccess* node)
+{
+    expected_ret_.push(RetType::Ptr);
+
+    auto* accessed = std::any_cast<llvm::Value*>(node->accessed->accept(this));
+
+    expected_ret_.pop();
+
+    auto* st = node->accessed->exprType->as<StructType>();
+
+    std::array<llvm::Value*, 2> indexes{};
+
+    indexes[0] = llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), 0);
+    indexes[1] = llvm::ConstantInt::getSigned(llvm::Type::getInt32Ty(*context_), st->getFieldId(node->field));
+
+    auto* elemPtr = builder_->CreateInBoundsGEP(
+        st->getLLVMType(*context_, curr_function_->getAddressSpace()),
+        accessed,
+        indexes);
+
+    if (expected_ret_.top() == RetType::Ptr) {
+        return elemPtr;
+    }
+
+    return (llvm::Value*)builder_->CreateLoad(
+        st->getFieldType(node->field)->getLLVMType(*context_, curr_function_->getAddressSpace()),
+        elemPtr);
+}
+
 std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
 {
     expected_ret_.push(RetType::Ptr);
@@ -342,9 +410,9 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
     expected_ret_.pop();
 
     indexed->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
-    auto indexedType = type_calculator_.calculate(node->indexed.get());
+    auto indexedType = node->indexed->exprType;
 
-    if (!indexedType->isArray()) {
+    if (!indexedType->as<ArrayType>()) {
         std::cerr << "invalid indexing\n";
     }
 
@@ -355,9 +423,9 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
 
     llvm::Value* lastGEP = nullptr;
 
-    if (indexedType->getSize() == -1) {
+    if (indexedType->as<ArrayType>()->getSize() == -1) {
         lastGEP = builder_->CreateGEP(
-            indexedType->getIndexed()->getLLVMType(*context_, curr_function_->getAddressSpace()),
+            indexedType->as<ArrayType>()->getIndexed()->getLLVMType(*context_, curr_function_->getAddressSpace()),
             builder_->CreateLoad(
                 llvm::PointerType::get(*context_, curr_function_->getAddressSpace()),
                 indexed),
@@ -370,7 +438,7 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
             currGepIdx);
     }
 
-    indexedType = indexedType->getIndexed();
+    indexedType = indexedType->as<ArrayType>()->getIndexed();
 
     for (auto i = 1; i < node->indexes.size(); i++) {
         if (!indexedType) {
@@ -381,7 +449,7 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
             indexedType->getLLVMType(*context_, curr_function_->getAddressSpace()),
             lastGEP,
             currGepIdx);
-        indexedType = indexedType->getIndexed();
+        indexedType = indexedType->as<ArrayType>()->getIndexed();
     }
 
     expected_ret_.pop();
@@ -406,10 +474,13 @@ std::any IrEmitter::visitOpDeref(struct AsgOpDeref* node)
     auto* lastLoad = std::any_cast<llvm::Value*>(node->expression->accept(this));
     expected_ret_.pop();
 
-    auto exprType = type_calculator_.calculate(node->expression.get());
+    auto exprType = node->expression->exprType;
 
     for (auto i = 0; i < derefCount; i++) {
-        auto derefType = exprType->getDeref();
+        if (!exprType->as<PtrType>()) {
+            std::cerr << "invalid dereference\n";
+        }
+        auto derefType = exprType->as<PtrType>()->getDeref();
         if (!derefType) {
             std::cerr << "invalid dereference\n";
         }
@@ -427,11 +498,11 @@ std::any IrEmitter::visitOpRef(struct AsgOpRef* node)
 
     if (auto* variable = dynamic_cast<AsgVariable*>(node->value.get())) {
         val = findAlloca(variable->name);
+        val->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     } else {
         std::cerr << "unexpected reference in " << node->function->name << "\n";
     }
 
-    auto valType = type_calculator_.calculate(node);
     return val;
 }
 
@@ -439,23 +510,23 @@ std::any IrEmitter::visitVariable(struct AsgVariable* node)
 {
     if (expected_ret_.top() == RetType::Ptr) {
         return (llvm::Value*)findAlloca(node->name);
-    } else if (const auto varType = findVarType(node->name, node); varType->isArray() && expected_ret_.top() == RetType::CallParam) {
+    } else if (node->exprType->as<ArrayType>() && expected_ret_.top() == RetType::CallParam) {
         auto* alloca = findAlloca(node->name);
         alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(*context_), 0);
         std::vector<llvm::Value*> ids;
-        auto currType = varType;
-        while (currType->isArray()) {
+        auto currType = node->exprType;
+        while (currType->as<ArrayType>()) {
             ids.push_back(constZero);
-            currType = currType->getIndexed();
+            currType = currType->as<ArrayType>()->getIndexed();
         }
         return (llvm::Value*)builder_->CreateInBoundsGEP(
-            varType->getLLVMType(*context_, curr_function_->getAddressSpace()),
+            node->exprType->getLLVMType(*context_, curr_function_->getAddressSpace()),
             alloca,
             ids);
     }
     return (llvm::Value*)builder_->CreateLoad(
-        findVarType(node->name, node)->getLLVMType(*context_, curr_function_->getAddressSpace()),
+        node->exprType->getLLVMType(*context_, curr_function_->getAddressSpace()),
         findAlloca(node->name));
 }
 
@@ -495,161 +566,4 @@ llvm::AllocaInst* IrEmitter::makeAlloca(const std::string& name, llvm::Type* typ
         curr_function_->getEntryBlock().begin()};
 
     return builder.CreateAlloca(type, nullptr, name);
-}
-
-Type::Id IrEmitter::findVarType(const std::string& name, const AsgNode* startNode)
-{
-    const AsgStatementList* list = startNode->list;
-    while (list) {
-        if (list->localVariables.find(name) != list->localVariables.end()) {
-            return list->localVariables.at(name);
-        }
-        list = list->list;
-    }
-    return nullptr;
-}
-
-std::any IrEmitter::TypeCalculator::visitStatementList(struct AsgStatementList* node)
-{
-    return Type::invalid();
-}
-
-std::any IrEmitter::TypeCalculator::visitFunctionDefinition(struct AsgFunctionDefinition* node)
-{
-    return Type::invalid();
-}
-
-std::any IrEmitter::TypeCalculator::visitVariableDefinition(struct AsgVariableDefinition* node)
-{
-    return findVarType(node->name, node);
-}
-
-std::any IrEmitter::TypeCalculator::visitReturn(struct AsgReturn* node)
-{
-    return Type::invalid();
-}
-
-std::any IrEmitter::TypeCalculator::visitAssignment(struct AsgAssignment* node)
-{
-    return node->assignable->accept(this);
-}
-
-std::any IrEmitter::TypeCalculator::visitConditional(struct AsgConditional* node)
-{
-    return Type::invalid();
-}
-
-std::any IrEmitter::TypeCalculator::visitLoop(struct AsgLoop* node)
-{
-    return Type::invalid();
-}
-
-std::any IrEmitter::TypeCalculator::visitComp(struct AsgComp* node)
-{
-    auto lt = std::any_cast<Type::Id>(node->lhs->accept(this));
-    auto rt = std::any_cast<Type::Id>(node->rhs->accept(this));
-    if (lt && rt) {
-        return TypeLibrary::inst().get("int");
-    }
-    return Type::invalid();
-}
-
-std::any IrEmitter::TypeCalculator::visitAddSub(struct AsgAddSub* node)
-{
-    for (auto& sub : node->subexpressions) {
-        auto subtype = std::any_cast<Type::Id>(sub.expression->accept(this));
-        if (!subtype || subtype != TypeLibrary::inst().get("int")) {
-            return Type::invalid();
-        }
-    }
-    return TypeLibrary::inst().get("int");
-}
-
-std::any IrEmitter::TypeCalculator::visitMulDiv(struct AsgMulDiv* node)
-{
-    for (auto& sub : node->subexpressions) {
-        auto subtype = std::any_cast<Type::Id>(sub.expression->accept(this));
-        if (!subtype || subtype != TypeLibrary::inst().get("int")) {
-            return Type::invalid();
-        }
-    }
-    return TypeLibrary::inst().get("int");
-}
-
-std::any IrEmitter::TypeCalculator::visitIndexing(struct AsgIndexing* node)
-{
-    for (auto& index : node->indexes) {
-        if (std::any_cast<Type::Id>(index->accept(this)) != TypeLibrary::inst().get("int")) {
-            return Type::invalid();
-        }
-    }
-
-    auto indexedType = std::any_cast<Type::Id>(node->indexed->accept(this));
-
-    if (!indexedType) {
-        return indexedType;
-    }
-
-    for (auto& index : node->indexes) {
-        if (indexedType->isArray()) {
-            indexedType = indexedType->getIndexed();
-        } else if (indexedType->isPtr()) {
-            indexedType = indexedType->getDeref();
-        } else {
-            indexedType = Type::invalid();
-            break;
-        }
-    }
-
-    return indexedType;
-}
-
-std::any IrEmitter::TypeCalculator::visitOpDeref(struct AsgOpDeref* node)
-{
-    auto derefCount = node->derefCount;
-
-    auto expType = std::any_cast<Type::Id>(node->expression->accept(this));
-
-    if (!expType->isPtr()) {
-        return Type::invalid();
-    }
-
-    for (int i = 0; i < derefCount; i++) {
-        if (expType) {
-            expType = expType->getDeref();
-        }
-    }
-
-    return expType;
-}
-
-std::any IrEmitter::TypeCalculator::visitOpRef(struct AsgOpRef* node)
-{
-    auto expType = std::any_cast<Type::Id>(node->value->accept(this));
-
-    if (!expType) {
-        return expType;
-    }
-
-    return expType->getRef();
-}
-
-std::any IrEmitter::TypeCalculator::visitVariable(struct AsgVariable* node)
-{
-    return IrEmitter::findVarType(node->name, node);
-}
-
-std::any IrEmitter::TypeCalculator::visitCall(struct AsgCall* node)
-{
-    return node->callee->returnType;
-}
-
-std::any IrEmitter::TypeCalculator::visitIntLiteral(struct AsgIntLiteral* node)
-{
-    return TypeLibrary::inst().get("int");
-}
-
-Type::Id IrEmitter::TypeCalculator::calculate(AsgNode* node)
-{
-    return std::any_cast<Type::Id>(node->accept(this));
 }

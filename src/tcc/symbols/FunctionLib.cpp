@@ -10,7 +10,7 @@ FunctionLibrary& FunctionLibrary::inst()
     return *instance;
 }
 
-FunctionId FunctionLibrary::get(const std::string& name) const
+FunctionId FunctionLibrary::get(const std::string& name)
 {
     if (named_functions_.find(name) != named_functions_.end()) {
         return &named_functions_.at(name);

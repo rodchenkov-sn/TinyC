@@ -10,26 +10,46 @@
 #include "AsgVisitor.h"
 #include "symbols/Function.h"
 #include "symbols/Type.h"
+#include "utils/Defs.h"
 
 struct AsgNode {
     virtual ~AsgNode() = default;
 
     virtual std::any accept(AsgVisitorBase* visitor) = 0;
+    virtual void updateChild(AsgNode* from, AsgNode* to) = 0;
+
+    virtual void addLocalVar(const std::string& name, const Type::Id& type);
 
     AsgNode* parent = nullptr;
 
     struct AsgStatementList* list = nullptr;
     struct AsgFunctionDefinition* function = nullptr;
+    Type::Id exprType = Type::invalid();
+    size_t refLine;
 };
 
 struct AsgStatementList : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitStatementList(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
+
+    void addLocalVar(const std::string& name, const Type::Id& type) override;
 
     std::vector<std::unique_ptr<AsgNode>> statements;
     std::unordered_map<std::string, Type::Id> localVariables;
+};
+
+struct AsgStructDefinition : AsgNode {
+    struct Field {
+        std::string type;
+        std::string name;
+        size_t refLine;
+    };
+
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
+
+    std::string name;
+    std::vector<Field> fields;
 };
 
 struct AsgFunctionDefinition : AsgNode {
@@ -38,10 +58,8 @@ struct AsgFunctionDefinition : AsgNode {
         std::string name;
     };
 
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitFunctionDefinition(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::string name;
     std::string returnType;
@@ -52,10 +70,8 @@ struct AsgFunctionDefinition : AsgNode {
 };
 
 struct AsgVariableDefinition : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitVariableDefinition(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::string type;
     std::string name;
@@ -63,29 +79,23 @@ struct AsgVariableDefinition : AsgNode {
 };
 
 struct AsgReturn : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitReturn(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::unique_ptr<AsgNode> value;
 };
 
 struct AsgAssignment : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitAssignment(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::unique_ptr<AsgNode> assignable;
     std::unique_ptr<AsgNode> value;
 };
 
 struct AsgConditional : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitConditional(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::unique_ptr<AsgNode> condition;
     std::unique_ptr<AsgNode> thenNode;
@@ -93,10 +103,8 @@ struct AsgConditional : AsgNode {
 };
 
 struct AsgLoop : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitLoop(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::unique_ptr<AsgNode> condition;
     std::unique_ptr<AsgNode> body;
@@ -112,13 +120,11 @@ struct AsgComp : AsgNode {
         GreaterEquals
     };
 
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitComp(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
-    AsgNode* lhs;
-    AsgNode* rhs;
+    std::unique_ptr<AsgNode> lhs;
+    std::unique_ptr<AsgNode> rhs;
     Operator op;
 };
 
@@ -133,10 +139,8 @@ struct AsgAddSub : AsgNode {
         std::unique_ptr<AsgNode> expression;
     };
 
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitAddSub(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::vector<Subexpression> subexpressions;
 };
@@ -152,57 +156,53 @@ struct AsgMulDiv : AsgNode {
         std::unique_ptr<AsgNode> expression;
     };
 
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitMulDiv(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::vector<Subexpression> subexpressions;
 };
 
+struct AsgFieldAccess : AsgNode {
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
+
+    std::string field;
+    std::unique_ptr<AsgNode> accessed;
+};
+
 struct AsgIndexing : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitIndexing(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::unique_ptr<AsgNode> indexed;
     std::vector<std::unique_ptr<AsgNode>> indexes;
 };
 
 struct AsgOpDeref : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitOpDeref(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     size_t derefCount;
     std::unique_ptr<AsgNode> expression;
 };
 
 struct AsgOpRef : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitOpRef(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::unique_ptr<AsgNode> value;
 };
 
 struct AsgVariable : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitVariable(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::string name;
 };
 
 struct AsgCall : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitCall(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     std::string functionName;
     FunctionId callee;
@@ -210,10 +210,8 @@ struct AsgCall : AsgNode {
 };
 
 struct AsgIntLiteral : AsgNode {
-    std::any accept(AsgVisitorBase* visitor) override
-    {
-        return visitor->visitIntLiteral(this);
-    }
+    std::any accept(AsgVisitorBase* visitor) override;
+    void updateChild(AsgNode* from, AsgNode* to) override;
 
     int value;
 };

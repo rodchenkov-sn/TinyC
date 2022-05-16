@@ -31,7 +31,7 @@ BraceWrapping:
 BreakBeforeBinaryOperators: NonAssignment
 BreakBeforeTernaryOperators: true
 BreakConstructorInitializers: BeforeComma
-BreakInheritanceList: BeforeComma
+BreakInheritanceList: AfterComma
 ColumnLimit: 0
 CompactNamespaces: false
 ContinuationIndentWidth: 4
@@ -66,7 +66,7 @@ UseTab: Never
 SortIncludes: CaseInsensitive
 IncludeBlocks: Regroup
 IncludeCategories:
-  - Regex: '<llvm/'
+  - Regex: '<.*/'
     Priority: 2
   - Regex: '<'
     Priority: 1
