@@ -39,4 +39,4 @@ add_executable(tcc
         ${ANTLR4_SRC_FILES_antlr_generated_sources}
         )
 
-target_link_libraries(tcc antlr4_static ${llvm_libs} spdlog::spdlog)
+target_link_libraries(tcc antlr4_static ${llvm_libs} spdlog::spdlog_header_only)
