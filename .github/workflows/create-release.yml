@@ -18,7 +18,7 @@ jobs:
           echo "::set-output name=master-ver::$(grep -Ps "^#define TINYC_VERSION.* (\d+)$" src/tcc/version/Version.h | grep -Po "\d+" | xargs | tr ' ' '-')"
       - id: get-release-name
         run: |
-          echo "::set-output rel-name::$(grep -Ps "^#define TINYC_VERSION.* (\d+)$" src/tcc/version/Version.h | grep -Po "\d+" | xargs | tr ' ' '.' | sed "s/^/v/g")"
+          echo "::set-output name=rel-name::$(grep -Ps "^#define TINYC_VERSION.* (\d+)$" src/tcc/version/Version.h | grep -Po "\d+" | xargs | tr ' ' '.' | sed "s/^/v/g")"
 
   build:
     needs: get-version
