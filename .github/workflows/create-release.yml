@@ -33,7 +33,7 @@ jobs:
       - name: Build
         working-directory: ./build
         run: make
-      - run: mkdir linux-latest && mv ./tcc ./tcc-linux/tcc
+      - run: mkdir tcc-linux && mv ./tcc ./tcc-linux/tcc
         working-directory: ./build
       - name: Make archive
         run: tar -czvf 'tcc-linux-${{needs.get-version.outputs.version-str}}.tar.gz' tcc-linux/
