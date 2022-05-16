@@ -3,7 +3,7 @@
 
 #define TINYC_VERSION_MAJOR 0
 #define TINYC_VERSION_MINOR 1
-#define TINYC_VERSION_PATCH 1
+#define TINYC_VERSION_PATCH 2
 
 inline std::string getVersion()
 {
