@@ -1,5 +1,6 @@
 #include "TypeLib.h"
 
+#include <deque>
 #include <regex>
 
 #include <llvm/IR/DerivedTypes.h>

@@ -16,20 +16,20 @@ std::any AstVisitor::modify(std::any data)
 
     auto ret = visitTranslationUnit(ctx);
 
-    return ret;
+    return ret.as<AsgNode*>();
 }
 
-std::any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx)
+antlrcpp::Any AstVisitor::visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx)
 {
     auto node = std::make_unique<AsgStatementList>();
     for (auto* entity : ctx->entity()) {
-        auto* function = std::any_cast<AsgNode*>(visit(entity));
+        auto* function = visit(entity).as<AsgNode*>();
         node->statements.emplace_back(function);
     }
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitStruct(TinyCParser::StructContext* ctx)
+antlrcpp::Any AstVisitor::visitStructDef(TinyCParser::StructDefContext* ctx)
 {
     auto node = std::make_unique<AsgStructDefinition>();
     node->refLine = ctx->start->getLine();
@@ -53,7 +53,7 @@ std::any AstVisitor::visitStruct(TinyCParser::StructContext* ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitFunction(TinyCParser::FunctionContext* ctx)
+antlrcpp::Any AstVisitor::visitFunctionDef(TinyCParser::FunctionDefContext* ctx)
 {
     auto node = std::make_unique<AsgFunctionDefinition>();
     node->refLine = ctx->start->getLine();
@@ -82,14 +82,14 @@ std::any AstVisitor::visitFunction(TinyCParser::FunctionContext* ctx)
     }
 
     if (ctx->statements()) {
-        auto* body = std::any_cast<AsgNode*>(visit(ctx->statements()));
+        auto* body = visit(ctx->statements()).as<AsgNode*>();
         node->body.reset(body);
     }
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitStatements(TinyCParser::StatementsContext* ctx)
+antlrcpp::Any AstVisitor::visitStatements(TinyCParser::StatementsContext* ctx)
 {
     auto node = std::make_unique<AsgStatementList>();
     node->refLine = ctx->start->getLine();
@@ -98,18 +98,18 @@ std::any AstVisitor::visitStatements(TinyCParser::StatementsContext* ctx)
 
         auto stmtNode = visit(statement);
 
-        if (stmtNode.type() == typeid(AsgReturn*)) {
-            node->statements.emplace_back(std::any_cast<AsgReturn*>(stmtNode));
+        if (stmtNode.is<AsgReturn*>()) {
+            node->statements.emplace_back(stmtNode.as<AsgReturn*>());
             break;
         }
-        auto* s = std::any_cast<AsgNode*>(visit(statement));
+        auto* s = visit(statement).as<AsgNode*>();
         node->statements.emplace_back(s);
     }
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
+antlrcpp::Any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
 {
     if (ctx->expression()) {
         return visitExpression(ctx->expression());
@@ -129,32 +129,32 @@ std::any AstVisitor::visitStatement(TinyCParser::StatementContext* ctx)
     return visitStatements(ctx->statements());
 }
 
-std::any AstVisitor::visitIfStatement(TinyCParser::IfStatementContext* ctx)
+antlrcpp::Any AstVisitor::visitIfStatement(TinyCParser::IfStatementContext* ctx)
 {
     auto node = std::make_unique<AsgConditional>();
     node->refLine = ctx->start->getLine();
-    node->condition.reset(std::any_cast<AsgNode*>(visit(ctx->expression())));
+    node->condition.reset(visit(ctx->expression()).as<AsgNode*>());
 
     auto thenNode = visit(ctx->statement(0));
-    if (thenNode.type() == typeid(AsgNode*)) {
-        node->thenNode.reset(std::any_cast<AsgNode*>(thenNode));
+    if (thenNode.is<AsgNode*>()) {
+        node->thenNode.reset(thenNode.as<AsgNode*>());
     } else {
-        node->thenNode.reset(std::any_cast<AsgReturn*>(thenNode));
+        node->thenNode.reset(thenNode.as<AsgReturn*>());
     }
 
     if (ctx->statement().size() == 2) {
         auto elseNode = visit(ctx->statement(1));
-        if (elseNode.type() == typeid(AsgNode*)) {
-            node->elseNode.reset(std::any_cast<AsgNode*>(elseNode));
+        if (elseNode.is<AsgNode*>()) {
+            node->elseNode.reset(elseNode.as<AsgNode*>());
         } else {
-            node->elseNode.reset(std::any_cast<AsgReturn*>(elseNode));
+            node->elseNode.reset(elseNode.as<AsgReturn*>());
         }
     }
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext* ctx)
+antlrcpp::Any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext* ctx)
 {
     auto node = std::make_unique<AsgVariableDefinition>();
     node->refLine = ctx->start->getLine();
@@ -173,58 +173,58 @@ std::any AstVisitor::visitVariableDecl(TinyCParser::VariableDeclContext* ctx)
     node->name = ctx->variableName()->getText();
 
     if (ctx->expression()) {
-        auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
+        auto* e = visit(ctx->expression()).as<AsgNode*>();
         node->value.reset(e);
     }
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitAssignment(TinyCParser::AssignmentContext* ctx)
+antlrcpp::Any AstVisitor::visitAssignment(TinyCParser::AssignmentContext* ctx)
 {
     auto node = std::make_unique<AsgAssignment>();
     node->refLine = ctx->start->getLine();
-    node->assignable.reset(std::any_cast<AsgNode*>(visit(ctx->operandDereference())));
+    node->assignable.reset(visit(ctx->operandDereference()).as<AsgNode*>());
 
-    auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
+    auto* e = visit(ctx->expression()).as<AsgNode*>();
     node->value.reset(e);
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext* ctx)
+antlrcpp::Any AstVisitor::visitReturnStatement(TinyCParser::ReturnStatementContext* ctx)
 {
     auto node = std::make_unique<AsgReturn>();
     node->refLine = ctx->start->getLine();
     if (ctx->expression()) {
-        auto* e = std::any_cast<AsgNode*>(visit(ctx->expression()));
+        auto* e = visit(ctx->expression()).as<AsgNode*>();
         node->value.reset(e);
     }
 
     return node.release();
 }
 
-std::any AstVisitor::visitWhileStatement(TinyCParser::WhileStatementContext* ctx)
+antlrcpp::Any AstVisitor::visitWhileStatement(TinyCParser::WhileStatementContext* ctx)
 {
     auto node = std::make_unique<AsgLoop>();
 
-    node->condition.reset(std::any_cast<AsgNode*>(visit(ctx->expression())));
-    node->body.reset(std::any_cast<AsgNode*>(visit(ctx->statement())));
+    node->condition.reset(visit(ctx->expression()).as<AsgNode*>());
+    node->body.reset(visit(ctx->statement()).as<AsgNode*>());
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitForStatement(TinyCParser::ForStatementContext* ctx)
+antlrcpp::Any AstVisitor::visitForStatement(TinyCParser::ForStatementContext* ctx)
 {
     auto node = std::make_unique<AsgStatementList>();
-    node->statements.emplace_back(std::any_cast<AsgNode*>(visit(ctx->expression(0))));
+    node->statements.emplace_back(visit(ctx->expression(0)).as<AsgNode*>());
     {
         auto loopNode = std::make_unique<AsgLoop>();
-        loopNode->condition.reset(std::any_cast<AsgNode*>(visit(ctx->expression(1))));
+        loopNode->condition.reset(visit(ctx->expression(1)).as<AsgNode*>());
         {
             auto loopBody = std::make_unique<AsgStatementList>();
-            loopBody->statements.emplace_back(std::any_cast<AsgNode*>(visit(ctx->statement())));
-            loopBody->statements.emplace_back(std::any_cast<AsgNode*>(visit(ctx->expression(2))));
+            loopBody->statements.emplace_back(visit(ctx->statement()).as<AsgNode*>());
+            loopBody->statements.emplace_back(visit(ctx->expression(2)).as<AsgNode*>());
             loopNode->body = std::move(loopBody);
         }
         node->statements.emplace_back(std::move(loopNode));
@@ -232,14 +232,14 @@ std::any AstVisitor::visitForStatement(TinyCParser::ForStatementContext* ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx)
+antlrcpp::Any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx)
 {
     if (ctx->addSubExpr().size() == 1) {
         return visitAddSubExpr(ctx->addSubExpr(0));
     }
 
-    auto* lhs = std::any_cast<AsgNode*>(visitAddSubExpr(ctx->addSubExpr(0)));
-    auto* rhs = std::any_cast<AsgNode*>(visitAddSubExpr(ctx->addSubExpr(1)));
+    auto* lhs = visitAddSubExpr(ctx->addSubExpr(0)).as<AsgNode*>();
+    auto* rhs = visitAddSubExpr(ctx->addSubExpr(1)).as<AsgNode*>();
     AsgComp::Operator op;
     if (ctx->EQUALEQUAL()) {
         op = AsgComp::Operator::Equals;
@@ -264,7 +264,7 @@ std::any AstVisitor::visitCompExpression(TinyCParser::CompExpressionContext* ctx
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext* ctx)
+antlrcpp::Any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext* ctx)
 {
     if (ctx->mulDivExpr().size() == 1) {
         return visit(ctx->mulDivExpr(0));
@@ -273,7 +273,7 @@ std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext* ctx)
     auto node = std::make_unique<AsgAddSub>();
     node->refLine = ctx->start->getLine();
     for (auto i = 0; i < ctx->mulDivExpr().size(); i++) {
-        auto* e = std::any_cast<AsgNode*>(visit(ctx->mulDivExpr(i)));
+        auto* e = visit(ctx->mulDivExpr(i)).as<AsgNode*>();
         AsgAddSub::Operator op = AsgAddSub::Operator::Add;
         if (i != 0 && ctx->MINUS(i - 1)) {
             op = AsgAddSub::Operator::Sub;
@@ -289,7 +289,7 @@ std::any AstVisitor::visitAddSubExpr(TinyCParser::AddSubExprContext* ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext* ctx)
+antlrcpp::Any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext* ctx)
 {
     if (ctx->operandDereference().size() == 1) {
         return visit(ctx->operandDereference(0));
@@ -298,7 +298,7 @@ std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext* ctx)
     auto node = std::make_unique<AsgMulDiv>();
     node->refLine = ctx->start->getLine();
     for (auto i = 0; i < ctx->operandDereference().size(); i++) {
-        auto* e = std::any_cast<AsgNode*>(visit(ctx->operandDereference(i)));
+        auto* e = visit(ctx->operandDereference(i)).as<AsgNode*>();
         AsgMulDiv::Operator op = AsgMulDiv::Operator::Mul;
         if (i != 0 && ctx->SLASH(i - 1)) {
             op = AsgMulDiv::Operator::Div;
@@ -314,7 +314,7 @@ std::any AstVisitor::visitMulDivExpr(TinyCParser::MulDivExprContext* ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx)
+antlrcpp::Any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx)
 {
     if (ctx->indexing().empty()) {
         return visit(ctx->operand());
@@ -322,16 +322,16 @@ std::any AstVisitor::visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx
 
     auto node = std::make_unique<AsgIndexing>();
     node->refLine = ctx->start->getLine();
-    node->indexed.reset(std::any_cast<AsgNode*>(visit(ctx->operand())));
+    node->indexed.reset(visit(ctx->operand()).as<AsgNode*>());
 
     for (auto* indexCtx : ctx->indexing()) {
-        node->indexes.emplace_back(std::any_cast<AsgNode*>(visit(indexCtx->expression())));
+        node->indexes.emplace_back(visit(indexCtx->expression()).as<AsgNode*>());
     }
 
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx)
+antlrcpp::Any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx)
 {
     if (ctx->ASTERISK().empty()) {
         return visit(ctx->fieldAccess());
@@ -340,17 +340,17 @@ std::any AstVisitor::visitOperandDereference(TinyCParser::OperandDereferenceCont
     auto node = std::make_unique<AsgOpDeref>();
     node->refLine = ctx->start->getLine();
     node->derefCount = ctx->ASTERISK().size();
-    node->expression.reset(std::any_cast<AsgNode*>(visit(ctx->fieldAccess())));
+    node->expression.reset(visit(ctx->fieldAccess()).as<AsgNode*>());
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitFieldAccess(TinyCParser::FieldAccessContext* ctx)
+antlrcpp::Any AstVisitor::visitFieldAccess(TinyCParser::FieldAccessContext* ctx)
 {
     if (ctx->fieldAccessOp().empty()) {
         return visit(ctx->indexedOperand());
     }
 
-    auto accessed = std::any_cast<AsgNode*>(visit(ctx->indexedOperand()));
+    auto accessed = visit(ctx->indexedOperand()).as<AsgNode*>();
     for (auto* access : ctx->fieldAccessOp()) {
         if (access->ARROW()) {
             auto derefNode = std::make_unique<AsgOpDeref>();
@@ -375,7 +375,7 @@ std::any AstVisitor::visitFieldAccess(TinyCParser::FieldAccessContext* ctx)
         indexingNode->indexed = std::move(accNode);
 
         for (auto* index : access->indexing()) {
-            indexingNode->indexes.emplace_back(std::any_cast<AsgNode*>(visit(index->expression())));
+            indexingNode->indexes.emplace_back(visit(index->expression()).as<AsgNode*>());
         }
 
         accessed = indexingNode.release();
@@ -384,7 +384,7 @@ std::any AstVisitor::visitFieldAccess(TinyCParser::FieldAccessContext* ctx)
     return accessed;
 }
 
-std::any AstVisitor::visitValueReference(TinyCParser::ValueReferenceContext* ctx)
+antlrcpp::Any AstVisitor::visitValueReference(TinyCParser::ValueReferenceContext* ctx)
 {
     if (!ctx->AMPERSAND()) {
         return visit(ctx->referenceableValue());
@@ -392,11 +392,11 @@ std::any AstVisitor::visitValueReference(TinyCParser::ValueReferenceContext* ctx
 
     auto node = std::make_unique<AsgOpRef>();
     node->refLine = ctx->start->getLine();
-    node->value.reset(std::any_cast<AsgNode*>(visit(ctx->referenceableValue())));
+    node->value.reset(visit(ctx->referenceableValue()).as<AsgNode*>());
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitCallExpr(TinyCParser::CallExprContext* ctx)
+antlrcpp::Any AstVisitor::visitCallExpr(TinyCParser::CallExprContext* ctx)
 {
     auto node = std::make_unique<AsgCall>();
 
@@ -404,7 +404,7 @@ std::any AstVisitor::visitCallExpr(TinyCParser::CallExprContext* ctx)
     node->refLine = ctx->start->getLine();
     if (auto* argumentsCtx = ctx->arguments()) {
         for (auto* argumentCtx : argumentsCtx->argument()) {
-            auto* argument = std::any_cast<AsgNode*>(visit(argumentCtx->expression()));
+            auto* argument = visit(argumentCtx->expression()).as<AsgNode*>();
             node->arguments.emplace_back(argument);
         }
     }
@@ -412,7 +412,7 @@ std::any AstVisitor::visitCallExpr(TinyCParser::CallExprContext* ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitLiteral(TinyCParser::LiteralContext* ctx)
+antlrcpp::Any AstVisitor::visitLiteral(TinyCParser::LiteralContext* ctx)
 {
     auto node = std::make_unique<AsgIntLiteral>();
     node->refLine = ctx->start->getLine();
@@ -421,7 +421,7 @@ std::any AstVisitor::visitLiteral(TinyCParser::LiteralContext* ctx)
     return (AsgNode*)node.release();
 }
 
-std::any AstVisitor::visitVariableName(TinyCParser::VariableNameContext* ctx)
+antlrcpp::Any AstVisitor::visitVariableName(TinyCParser::VariableNameContext* ctx)
 {
     auto node = std::make_unique<AsgVariable>();
     node->refLine = ctx->start->getLine();

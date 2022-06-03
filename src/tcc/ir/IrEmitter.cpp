@@ -113,7 +113,6 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
             param.setName(paramName + "_arg");
 
             llvm::AllocaInst* alloca = makeAlloca(paramName, param.getType());
-            alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
             builder_->CreateStore(&param, alloca);
 
             scopes_.back().insert({paramName, alloca});
@@ -159,7 +158,6 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
     if (node->value) {
         expected_ret_.push(RetType::Data);
         auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
-        alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         builder_->CreateStore(value, alloca);
         expected_ret_.pop();
     }
@@ -216,7 +214,6 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
     auto valType = node->value->exprType;
     expected_ret_.pop();
 
-    assignable->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     builder_->CreateStore(value, assignable);
 
     if (expected_ret_.top() == RetType::Data) {
@@ -409,7 +406,6 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
     auto* indexed = std::any_cast<llvm::Value*>(node->indexed->accept(this));
     expected_ret_.pop();
 
-    indexed->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     auto indexedType = node->indexed->exprType;
 
     if (!indexedType->as<ArrayType>()) {
@@ -498,7 +494,6 @@ std::any IrEmitter::visitOpRef(struct AsgOpRef* node)
 
     if (auto* variable = dynamic_cast<AsgVariable*>(node->value.get())) {
         val = findAlloca(variable->name);
-        val->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     } else {
         std::cerr << "unexpected reference in " << node->function->name << "\n";
     }
@@ -512,7 +507,6 @@ std::any IrEmitter::visitVariable(struct AsgVariable* node)
         return (llvm::Value*)findAlloca(node->name);
     } else if (node->exprType->as<ArrayType>() && expected_ret_.top() == RetType::CallParam) {
         auto* alloca = findAlloca(node->name);
-        alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(*context_), 0);
         std::vector<llvm::Value*> ids;
         auto currType = node->exprType;

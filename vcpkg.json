@@ -1,0 +1,13 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "tiny-c",
+    "version": "1.0.0",
+    "dependencies": [
+        "spdlog",
+        "antlr4",
+        {
+            "name": "llvm",
+            "default-features": false
+        }
+    ]
+}
