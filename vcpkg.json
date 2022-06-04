@@ -5,6 +5,7 @@
     "dependencies": [
         "spdlog",
         "antlr4",
+        "argparse",
         {
             "name": "llvm",
             "default-features": false

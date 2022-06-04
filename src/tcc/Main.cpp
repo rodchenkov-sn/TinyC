@@ -35,11 +35,6 @@ int main(int argc, char** argv)
         .default_value(false)
         .implicit_value(true);
 
-    program.add_argument("-v", "--verbose")
-        .help("print additional info during compilation")
-        .default_value(false)
-        .implicit_value(true);
-
     try {
         program.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
@@ -49,12 +44,6 @@ int main(int argc, char** argv)
     }
 
     spdlog::set_pattern("%^[%l]%$ %v");
-
-    if (program.get<bool>("-v")) {
-        spdlog::set_level(spdlog::level::info);
-    } else {
-        spdlog::set_level(spdlog::level::warn);
-    }
 
     auto inputFileName = program.get<std::string>("input");
 
