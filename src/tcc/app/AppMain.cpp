@@ -1,3 +1,5 @@
+#include "AppMain.h"
+
 #include <iostream>
 
 #include <argparse/argparse.hpp>
@@ -13,8 +15,10 @@
 #include "symbols/TypeResolver.h"
 #include "version/Version.h"
 
-int main(int argc, char** argv)
+int appMain(int argc, char** argv)
 {
+    spdlog::set_pattern("%^[%l]%$ %v");
+
     argparse::ArgumentParser program{"tcc", getVersion()};
 
     program.add_argument("input")
@@ -42,8 +46,6 @@ int main(int argc, char** argv)
         std::cerr << program;
         return EXIT_FAILURE;
     }
-
-    spdlog::set_pattern("%^[%l]%$ %v");
 
     auto inputFileName = program.get<std::string>("input");
 

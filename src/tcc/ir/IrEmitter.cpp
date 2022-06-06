@@ -141,7 +141,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
 
     scopes_.pop_back();
     expected_ret_.pop();
-    ASSERT(expected_ret_.empty());
+    TC_ASSERT(expected_ret_.empty());
 
     curr_function_ = nullptr;
     return {};
@@ -337,13 +337,13 @@ std::any IrEmitter::visitComp(struct AsgComp* node)
         break;
     }
 
-    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    TC_ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     return builder_->CreateIntCast(i1Val, llvm::Type::getInt32Ty(*context_), false);
 }
 
 std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 {
-    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    TC_ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     auto* last = std::any_cast<llvm::Value*>(node->subexpressions[0].expression->accept(this));
     for (auto i = 1; i < node->subexpressions.size(); i++) {
         auto* curr = std::any_cast<llvm::Value*>(node->subexpressions[i].expression->accept(this));
@@ -358,7 +358,7 @@ std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 
 std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
 {
-    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    TC_ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     auto* last = std::any_cast<llvm::Value*>(node->subexpressions[0].expression->accept(this));
     for (auto i = 1; i < node->subexpressions.size(); i++) {
         auto* curr = std::any_cast<llvm::Value*>(node->subexpressions[i].expression->accept(this));
