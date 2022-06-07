@@ -1,8 +1,6 @@
 #include "TypeResolver.h"
 
-#include <spdlog/spdlog.h>
-
-#include "FunctionLib.h"
+#include "log/Logging.h"
 #include "TypeLib.h"
 
 struct VisUpdater {
@@ -39,7 +37,7 @@ static std::string getTmpParamName(const std::string& origName)
 std::any TypeResolver::modify(std::any data)
 {
     if (data.type() != typeid(AsgNode*)) {
-        spdlog::critical("Unexpected data type passed to TypeResolver -- expected AsgNode*");
+        TC_LOG_CRITICAL("Unexpected data type passed to TypeResolver -- expected AsgNode*");
         return {};
     }
     auto* root = std::any_cast<AsgNode*>(data);
@@ -137,7 +135,7 @@ std::any TypeResolver::visitVariableDefinition(struct AsgVariableDefinition* nod
         auto valueType = std::any_cast<LRValue>(node->value->accept(this)).type;
         if (!Type::isSame(nodeType, valueType)) {
             if (nodeType && valueType) {
-                spdlog::error(
+                TC_LOG_ERROR(
                     "at line {} -- invalid type conversion in assignment: {} -> {}",
                     node->refLine,
                     valueType->toString(),
@@ -159,7 +157,7 @@ std::any TypeResolver::visitReturn(struct AsgReturn* node)
     auto real = std::any_cast<LRValue>(node->value->accept(this)).type;
     if (!Type::isSame(real, expected)) {
         if (real && expected) {
-            spdlog::error(
+            TC_LOG_ERROR(
                 "at line {} -- invalid return type: expected {}, got {}",
                 node->refLine,
                 expected->toString(),
@@ -208,7 +206,7 @@ std::any TypeResolver::visitAssignment(struct AsgAssignment* node)
     auto assignableType = std::any_cast<LRValue>(node->assignable->accept(this));
 
     if (assignableType.side == LRValue::Side::R) {
-        spdlog::error(
+        TC_LOG_ERROR(
             "at line {} -- can not assign to rvalue if type {}",
             node->refLine,
             assignableType.type->toString());
@@ -217,7 +215,7 @@ std::any TypeResolver::visitAssignment(struct AsgAssignment* node)
 
     if (!Type::isSame(valueType.type, assignableType.type)) {
         if (valueType.type && assignableType.type) {
-            spdlog::error(
+            TC_LOG_ERROR(
                 "at line {} -- invalid type conversion in assignment: {} -> {}",
                 node->refLine,
                 valueType.type->toString(),
@@ -256,7 +254,7 @@ std::any TypeResolver::visitComp(struct AsgComp* node)
     auto rhsType = std::any_cast<LRValue>(node->rhs->accept(this)).type;
     if (!Type::isSame(lhsType, rhsType)) {
         if (rhsType && lhsType) {
-            spdlog::error(
+            TC_LOG_ERROR(
                 "at line {} -- comparison between values of different types: {} vs {}",
                 node->refLine,
                 lhsType->toString(),
@@ -275,7 +273,7 @@ std::any TypeResolver::visitAddSub(struct AsgAddSub* node)
     for (auto& expr : node->subexpressions) {
         if (auto t = std::any_cast<LRValue>(expr.expression->accept(this)).type; t != TypeLibrary::inst().get("int")) {
             if (t) {
-                spdlog::error("at line {} -- invalid arithmetic with type {}", node->refLine, t->toString());
+                TC_LOG_ERROR("at line {} -- invalid arithmetic with type {}", node->refLine, t->toString());
             }
             ok_ = false;
             return LRValue{Type::invalid()};
@@ -291,7 +289,7 @@ std::any TypeResolver::visitMulDiv(struct AsgMulDiv* node)
     for (auto& expr : node->subexpressions) {
         if (auto t = std::any_cast<LRValue>(expr.expression->accept(this)).type; t != TypeLibrary::inst().get("int")) {
             if (t) {
-                spdlog::error("at line {} -- invalid arithmetic with type {}", node->refLine, t->toString());
+                TC_LOG_ERROR("at line {} -- invalid arithmetic with type {}", node->refLine, t->toString());
             }
             ok_ = false;
             return LRValue{Type::invalid()};
@@ -312,7 +310,7 @@ std::any TypeResolver::visitFieldAccess(struct AsgFieldAccess* node)
     }
 
     if (!accessedT.type->as<StructType>()) {
-        spdlog::error(
+        TC_LOG_ERROR(
             "at line {} -- can not access field of var of type {}",
             node->refLine,
             accessedT.type->toString());
@@ -321,7 +319,7 @@ std::any TypeResolver::visitFieldAccess(struct AsgFieldAccess* node)
     }
 
     if (accessedT.type->as<StructType>()->getFieldId(node->field) == -1) {
-        spdlog::error(
+        TC_LOG_ERROR(
             "at line {} -- type {} has no field {}",
             node->refLine,
             accessedT.type->toString(),
@@ -340,7 +338,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
     auto indexedType = std::any_cast<LRValue>(node->indexed->accept(this)).type;
     if (!indexedType || !indexedType->as<ArrayType>()) {
         if (indexedType) {
-            spdlog::error("at line {} -- invalid indexing of type {}", node->refLine, indexedType->toString());
+            TC_LOG_ERROR("at line {} -- invalid indexing of type {}", node->refLine, indexedType->toString());
         }
         ok_ = false;
         return LRValue{Type::invalid()};
@@ -349,7 +347,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
         auto indexType = std::any_cast<LRValue>(index->accept(this)).type;
         if (indexType != TypeLibrary::inst().get("int")) {
             if (indexType) {
-                spdlog::error(
+                TC_LOG_ERROR(
                     "at line {} -- invalid index type: expected: int, got: {}",
                     index->refLine,
                     indexedType->toString());
@@ -364,7 +362,7 @@ std::any TypeResolver::visitIndexing(struct AsgIndexing* node)
     for (auto& i : node->indexes) {
         if (!indexedType || !indexedType->as<ArrayType>()) {
             if (prevType) {
-                spdlog::error("at line {} -- invalid indexing: cant index {}", i->refLine, prevType->toString());
+                TC_LOG_ERROR("at line {} -- invalid indexing: cant index {}", i->refLine, prevType->toString());
             }
             ok_ = false;
             return LRValue{Type::invalid()};
@@ -391,7 +389,7 @@ std::any TypeResolver::visitOpDeref(struct AsgOpDeref* node)
     for (auto i = 0; i < node->derefCount; i++) {
         if (!t || !t->as<PtrType>()) {
             if (prevT) {
-                spdlog::error("at line {} -- cant deref {}", node->refLine, prevT->toString());
+                TC_LOG_ERROR("at line {} -- cant deref {}", node->refLine, prevT->toString());
             }
             ok_ = false;
             return LRValue{Type::invalid()};
@@ -414,7 +412,7 @@ std::any TypeResolver::visitOpRef(struct AsgOpRef* node)
     }
 
     if (t.side == LRValue::Side::R) {
-        spdlog::error(
+        TC_LOG_ERROR(
             "at line {} -- can not get address of rvalue of type {}",
             node->refLine,
             t.type->toString());
@@ -449,7 +447,7 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
                                   : node->callee->parameters.size();
 
     if (origParamCount != node->arguments.size()) {
-        spdlog::error(
+        TC_LOG_ERROR(
             "at line {} -- invalid {} call arg count: expected: {}, got: {}",
             node->refLine,
             node->functionName,
@@ -473,7 +471,7 @@ std::any TypeResolver::visitCall(struct AsgCall* node)
 
         if (!Type::isSame(realParamT, argT)) {
             if (argT) {
-                spdlog::error(
+                TC_LOG_ERROR(
                     "at line {} -- invalid arg #{} type: expected: {}, got: {}",
                     node->arguments[i]->refLine,
                     i + 1,

@@ -1,12 +1,11 @@
-#include "AppMain.h"
-
 #include <iostream>
 
 #include <argparse/argparse.hpp>
-#include <spdlog/spdlog.h>
 
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
+#include "log/Logging.h"
+#include "os/OsInit.h"
 #include "pipeline/input/FileReader.h"
 #include "pipeline/output/FileWriter.h"
 #include "pipeline/output/TerminalWriter.h"
@@ -15,10 +14,8 @@
 #include "symbols/TypeResolver.h"
 #include "version/Version.h"
 
-int appMain(int argc, char** argv)
+int main(int argc, char** argv)
 {
-    spdlog::set_pattern("%^[%l]%$ %v");
-
     argparse::ArgumentParser program{"tcc", getVersion()};
 
     program.add_argument("input")
@@ -39,6 +36,11 @@ int appMain(int argc, char** argv)
         .default_value(false)
         .implicit_value(true);
 
+    program.add_argument("--dump")
+        .help("create crash dump on failure")
+        .default_value(false)
+        .implicit_value(true);
+
     try {
         program.parse_args(argc, argv);
     } catch (const std::runtime_error& err) {
@@ -46,6 +48,11 @@ int appMain(int argc, char** argv)
         std::cerr << program;
         return EXIT_FAILURE;
     }
+
+    osInit(program.get<bool>("--dump"));
+    logInit();
+
+    TC_ASSERT(1 == 0);
 
     auto inputFileName = program.get<std::string>("input");
 
@@ -87,11 +94,11 @@ int appMain(int argc, char** argv)
     }
 
     if (!pipeline.run()) {
-        spdlog::error("compilation failed due to errors");
+        TC_LOG_ERROR("compilation failed due to errors");
         return EXIT_FAILURE;
     }
     if (!program.get<bool>("-p")) {
-        spdlog::info("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
+        TC_LOG_INFO("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
     }
     return EXIT_SUCCESS;
 }

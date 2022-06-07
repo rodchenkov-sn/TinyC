@@ -1,8 +1,7 @@
 #ifndef TINYC_ASSERTIONS_H
 #define TINYC_ASSERTIONS_H
 
-#include <spdlog/spdlog.h>
-
+#include "log/Logging.h"
 #include "os/OsTerminate.h"
 
 namespace details {
@@ -10,7 +9,7 @@ namespace details {
 inline void doAssert(bool cond, std::string_view msg, std::string_view file, int line)
 {
     if (!cond) {
-        spdlog::critical("assertion failed at {}:{} -- {}", file, line, msg);
+        TC_LOG_CRITICAL("assertion failed at {}:{} -- {}", file, line, msg);
         osTerminate();
     }
 }

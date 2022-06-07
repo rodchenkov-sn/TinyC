@@ -9,4 +9,4 @@
 #error Unsupported platform
 #endif
 
-#endif//TINYC_PLATFORM_H
+#endif

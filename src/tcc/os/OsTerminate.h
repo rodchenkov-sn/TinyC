@@ -3,4 +3,4 @@
 
 void osTerminate();
 
-#endif//TINYC_OSTERMINATE_H
+#endif

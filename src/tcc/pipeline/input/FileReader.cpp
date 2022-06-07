@@ -1,7 +1,6 @@
 #include "FileReader.h"
 
-#include <spdlog/spdlog.h>
-
+#include "log/Logging.h"
 #include "TinyCLexer.h"
 #include "TinyCParser.h"
 
@@ -15,7 +14,7 @@ std::any FileReader::produce()
     std::ifstream file;
     file.open(file_name_);
     if (!file.is_open()) {
-        spdlog::error("cant open file {}", file_name_);
+        TC_LOG_CRITICAL("cant open file {}", file_name_);
         return {};
     }
 
@@ -40,6 +39,6 @@ std::any FileReader::produce()
 
 void FileReader::ErrorListener::syntaxError(antlr4::Recognizer* recognizer, antlr4::Token* offendingSymbol, size_t line, size_t charPositionInLine, const std::string& msg, std::exception_ptr e)
 {
-    spdlog::error("at line {} -- {}", line, msg);
+    TC_LOG_ERROR("at line {} -- {}", line, msg);
     hasErrors = true;
 }

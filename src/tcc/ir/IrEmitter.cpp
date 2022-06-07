@@ -7,9 +7,9 @@
 #include <llvm/IR/PassManager.h>
 #include <llvm/IR/Verifier.h>
 #include <llvm/Passes/OptimizationLevel.h>
-#include <llvm/Passes/PassBuilder.h>
-#include <spdlog/spdlog.h>
+#include <llvm/Passes/PassBuilder.h>=
 
+#include "log/Logging.h"
 #include "symbols/TypeLib.h"
 #include "utils/Defs.h"
 
@@ -22,7 +22,7 @@ IrEmitter::IrEmitter(std::string moduleName, bool optimize)
 std::any IrEmitter::modify(std::any data)
 {
     if (data.type() != typeid(AsgNode*)) {
-        spdlog::critical("Unexpected data type passed to IrEmitter -- expected AsgNode*");
+        TC_LOG_CRITICAL("Unexpected data type passed to IrEmitter -- expected AsgNode*");
         return {};
     }
     auto* root = std::any_cast<AsgNode*>(data);
@@ -35,7 +35,7 @@ std::any IrEmitter::modify(std::any data)
     delete root;
 
     if (llvm::verifyModule(*module_, &llvm::errs())) {
-        spdlog::critical("invalid module was emitted by IrEmitter");
+        TC_LOG_CRITICAL("invalid module was emitted by IrEmitter");
         ok_ = false;
     }
 
@@ -135,7 +135,7 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
     node->body->accept(this);
 
     if (llvm::verifyFunction(*function, &llvm::errs())) {
-        spdlog::critical("invalid function {} was emitted by IrEmitter", node->name);
+        TC_LOG_CRITICAL("invalid function {} was emitted by IrEmitter", node->name);
         ok_ = false;
     }
 

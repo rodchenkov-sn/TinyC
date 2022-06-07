@@ -2,14 +2,13 @@
 
 #include <numeric>
 
-#include <spdlog/spdlog.h>
-
 #include "asg/AsgNode.h"
+#include "log/Logging.h"
 
 std::any AstVisitor::modify(std::any data)
 {
     if (data.type() != typeid(TinyCParser::TranslationUnitContext*)) {
-        spdlog::critical("Unexpected data type passed to AstVisitor -- expected TranslationUnitContext*");
+        TC_LOG_CRITICAL("Unexpected data type passed to AstVisitor -- expected TranslationUnitContext*");
         return {};
     }
     auto* ctx = std::any_cast<TinyCParser::TranslationUnitContext*>(data);
