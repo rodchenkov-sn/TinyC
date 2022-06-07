@@ -52,8 +52,6 @@ int main(int argc, char** argv)
     osInit(program.get<bool>("--dump"));
     logInit();
 
-    TC_ASSERT(1 == 0);
-
     auto inputFileName = program.get<std::string>("input");
 
     auto moduleName = inputFileName;
