@@ -31,7 +31,7 @@ add_compile_definitions("ANTLR4CPP_STATIC")
 
 # LLVM
 
-find_package(llvm REQUIRED)
+find_package(LLVM REQUIRED)
 include_directories(${LLVM_INCLUDE_DIRS})
 llvm_map_components_to_libnames(llvm_libs Passes)
 add_definitions(${LLVM_DEFINITIONS})

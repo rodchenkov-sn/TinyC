@@ -1,13 +1,15 @@
 #include "OsTerminate.h"
 
+#include <cstdlib>
+
 #include "Platform.h"
 
 void osTerminate()
 {
-#ifdef TC_WINDOWS
+#if defined(TC_WINDOWS)
     int* _p = nullptr;
     *_p = 42;
-#elif TC_LINUX
+#elif defined(TC_LINUX)
     exit(1);
 #endif
 }
