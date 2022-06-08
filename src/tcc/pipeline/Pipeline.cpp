@@ -1,7 +1,5 @@
 #include "Pipeline.h"
 
-#include <stdexcept>
-
 Pipeline& Pipeline::add(std::unique_ptr<PipeInputBase> input)
 {
     if (input_) {

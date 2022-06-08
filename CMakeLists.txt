@@ -63,11 +63,16 @@ endforeach()
 
 include_directories("${PROJECT_SOURCE_DIR}/src/tcc")
 
-
 add_executable(
         tcc
         ${tcc_sources}
         ${ANTLR4_SRC_FILES_antlr_generated_sources}
+)
+
+target_precompile_headers(
+        tcc
+        PRIVATE
+        ${tcc_src_root}/pch/Pch.h
 )
 
 target_link_libraries(
@@ -81,6 +86,7 @@ target_link_libraries(
 
 if(WIN32)
         add_compile_definitions(NOGDI)
+        add_compile_definitions(NOMINMAX)
 
         set_property(TARGET tcc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()

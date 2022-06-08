@@ -17,6 +17,7 @@ inline void doAssert(bool cond, std::string_view msg, std::string_view file, int
 }// namespace details
 
 #define TC_ASSERT(x) details::doAssert((x), #x, __FILE__, __LINE__)
+#define TC_ASSERT_FAIL(msg) details::doAssert(false, msg, __FILE__, __LINE__)
 
 #define TC_UNUSED(x) (void)x
 

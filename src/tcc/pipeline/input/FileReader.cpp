@@ -1,6 +1,5 @@
 #include "FileReader.h"
 
-#include "log/Logging.h"
 #include "TinyCLexer.h"
 #include "TinyCParser.h"
 

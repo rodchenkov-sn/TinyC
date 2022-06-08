@@ -1,6 +1,5 @@
 #include "TypeResolver.h"
 
-#include "log/Logging.h"
 #include "TypeLib.h"
 
 struct VisUpdater {

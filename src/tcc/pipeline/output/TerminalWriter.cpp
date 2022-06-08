@@ -1,9 +1,5 @@
 #include "TerminalWriter.h"
 
-#include <llvm/IR/Module.h>
-
-#include "log/Logging.h"
-
 bool TerminalWriter::consume(std::any data)
 {
     if (data.type() != typeid(llvm::Module*)) {

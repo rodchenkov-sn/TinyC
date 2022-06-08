@@ -1,11 +1,5 @@
 #include "Type.h"
 
-#include <algorithm>
-#include <sstream>
-
-#include <llvm/IR/DerivedTypes.h>
-#include <llvm/IR/LLVMContext.h>
-
 bool Type::isSame(const Type::Id& lhs, const Type::Id& rhs)
 {
     if (!lhs || !rhs) {
@@ -29,6 +23,9 @@ bool Type::isSame(const Type::Id& lhs, const Type::Id& rhs)
     }
     case Category::Struct:
         return lhs == rhs;
+    default:
+        TC_ASSERT_FAIL("unexpected category");
+        return false;
     }
 }
 

@@ -2,7 +2,6 @@
 
 #include "asg/AsgNode.h"
 #include "FunctionLib.h"
-#include "log/Logging.h"
 #include "TypeLib.h"
 
 std::any SymbolResolver::modify(std::any data)

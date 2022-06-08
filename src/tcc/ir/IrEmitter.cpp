@@ -1,17 +1,6 @@
 #include "IrEmitter.h"
 
-#include <llvm/Analysis/CGSCCPassManager.h>
-#include <llvm/Analysis/LoopAnalysisManager.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/PassManager.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Passes/OptimizationLevel.h>
-#include <llvm/Passes/PassBuilder.h>=
-
-#include "log/Logging.h"
 #include "symbols/TypeLib.h"
-#include "utils/Defs.h"
 
 IrEmitter::IrEmitter(std::string moduleName, bool optimize)
     : module_name_(std::move(moduleName))

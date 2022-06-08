@@ -1,9 +1,6 @@
 #ifndef TINYC_PIPELINE_H
 #define TINYC_PIPELINE_H
 
-#include <memory>
-#include <vector>
-
 #include "PipelineStage.h"
 
 class Pipeline {

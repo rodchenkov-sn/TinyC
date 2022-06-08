@@ -2,18 +2,11 @@
 
 #ifdef TC_WINDOWS
 
-// include order matters
+// order matters
 // clang-format off
-
-#include <optional>
-#include <string>
-
 #include <tchar.h>
 #include <windows.h>
 #include <dbghelp.h>
-
-#include "log/Logging.h"
-
 // clang-format on
 
 class WindowsExceptionHandler {

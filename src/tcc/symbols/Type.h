@@ -1,11 +1,6 @@
 #ifndef TINYC_TCTYPE_H
 #define TINYC_TCTYPE_H
 
-#include <functional>
-#include <utility>
-
-#include <llvm/IR/Type.h>
-
 #define DECL_TYPE_CATEGORY(c)                   \
     static Type::Category getCategoryStatic()   \
     {                                           \

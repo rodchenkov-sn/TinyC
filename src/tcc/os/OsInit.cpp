@@ -1,7 +1,6 @@
 #include "OsInit.h"
 
 #include "linux/LinuxInit.h"
-#include "Platform.h"
 #include "windows/WindowsInit.h"
 
 void osInit(bool dumpOnCrash)

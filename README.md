@@ -6,7 +6,7 @@ Requirements:
 
 **Warning: vcpkg install step in highly space-time-consuming**
 
-```
+```sh
 $ git submodule update --init
 $ vcpkg/bootstrap-vcpkg.sh # or .bat
 $ mkdir build

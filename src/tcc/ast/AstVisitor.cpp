@@ -1,9 +1,6 @@
 #include "AstVisitor.h"
 
-#include <numeric>
-
 #include "asg/AsgNode.h"
-#include "log/Logging.h"
 
 std::any AstVisitor::modify(std::any data)
 {

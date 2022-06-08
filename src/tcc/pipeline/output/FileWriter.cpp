@@ -1,9 +1,5 @@
 #include "FileWriter.h"
 
-#include <llvm/IR/Module.h>
-
-#include "log/Logging.h"
-
 FileWriter::FileWriter(std::string fileName)
     : file_name_(std::move(fileName))
 {

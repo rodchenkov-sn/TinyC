@@ -1,10 +1,5 @@
-#include <iostream>
-
-#include <argparse/argparse.hpp>
-
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
-#include "log/Logging.h"
 #include "os/OsInit.h"
 #include "pipeline/input/FileReader.h"
 #include "pipeline/output/FileWriter.h"

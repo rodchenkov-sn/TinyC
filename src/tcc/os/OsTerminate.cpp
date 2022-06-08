@@ -1,9 +1,5 @@
 #include "OsTerminate.h"
 
-#include <cstdlib>
-
-#include "Platform.h"
-
 void osTerminate()
 {
 #if defined(TC_WINDOWS)
