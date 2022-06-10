@@ -9,25 +9,27 @@ on:
       - dev
 
 jobs:
-  name: Build
-  runs-on: windows-latest
-  env:
-    VCPKG_BINARY_SOURCES: 'clear;nuget,${{ secrets.NUGET_REPO_URL }},readwrite;nugettimeout,3600'
-    VCPKG_USE_NUGET_CACHE: 1
-  steps:
-    - uses: actions/checkout@v3
-      with:
-        submodules: recursive
-    - name: Setup vcpkg
-      run: .\vcpkg\bootstrap-vcpkg
-    - name: Setup nuget
-      run: >
-        `./vcpkg/vcpkg fetch nuget | tail -n 1`
-        sources add
-        -source "${{ secrets.NUGET_REPO_URL }}"
-        -name "Kalak"
-    - run: mkdir build
-    - name: CMake
-      run: cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
-    - name: Build
-      run: cmake --build .\build\ --config Release
+
+  build:
+    name: Build
+    runs-on: windows-latest
+    env:
+      VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,readwrite;nugettimeout,3600'
+      VCPKG_USE_NUGET_CACHE: 1
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+      - name: Setup vcpkg
+        run: .\vcpkg\bootstrap-vcpkg
+      - name: Setup nuget
+        run: >
+          `./vcpkg/vcpkg fetch nuget | tail -n 1`
+          sources add
+          -source "${{ secrets.NUGET_REPO_URL }}"
+          -name "Kalak"
+      - run: mkdir build
+      - name: CMake
+        run: cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
+      - name: Build
+        run: cmake --build .\build\ --config Release
