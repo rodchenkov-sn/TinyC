@@ -10,5 +10,6 @@
             "name": "llvm",
             "default-features": false
         }
-    ]
+    ],
+    "builtin-baseline": "38bb87c5571555f1a4f64cb4ed9d2be0017f9fc1"
 }
