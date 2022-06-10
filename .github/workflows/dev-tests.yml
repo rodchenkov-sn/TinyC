@@ -14,7 +14,7 @@ jobs:
     name: Build
     runs-on: windows-latest
     env:
-      VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,readwrite;nugettimeout,3600'
+      VCPKG_BINARY_SOURCES: 'clear;nuget,${{ secrets.NUGET_REPO_URL }},read;nugettimeout,3600'
       VCPKG_USE_NUGET_CACHE: 1
     steps:
       - uses: actions/checkout@v3
@@ -26,7 +26,8 @@ jobs:
         shell: bash
         run: >
           `./vcpkg/vcpkg fetch nuget | tail -n 1`
-          sources add -source ${{ secrets.NUGET_REPO_URL }}
+          sources add
+          -source ${{ secrets.NUGET_REPO_URL }}
           -name Kalak
       - run: mkdir build
       - name: CMake
