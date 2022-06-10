@@ -8,7 +8,7 @@ Requirements:
 
 ```sh
 $ git submodule update --init
-$ vcpkg/bootstrap-vcpkg.sh # or .bat
+$ vcpkg/bootstrap-vcpkg
 $ mkdir build
 $ cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
 $ cmake --build ./build
