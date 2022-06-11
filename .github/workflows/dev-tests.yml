@@ -12,7 +12,7 @@ jobs:
 
   build:
     name: Build
-    runs-on: windows-latest
+    runs-on: windows-2019
     env:
       VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,read;nugettimeout,3600'
       VCPKG_USE_NUGET_CACHE: 1
@@ -24,8 +24,6 @@ jobs:
         run: .\vcpkg\bootstrap-vcpkg
       - name: Setup nuget
         run: nuget sources add -source ${{ secrets.NUGET_REPO_URL }} -name Kalak
-      - name: Test
-        run: .\vcpkg\vcpkg install --triplet x64-windows-static --debug
       - run: mkdir build
       - name: CMake
         run: cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
