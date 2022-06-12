@@ -12,9 +12,9 @@ jobs:
 
   build:
     name: Build
-    runs-on: windows-2019
+    runs-on: windows-latest
     env:
-      VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,read;nugettimeout,3600'
+      VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,readwrite;nugettimeout,3600'
       VCPKG_USE_NUGET_CACHE: 1
     steps:
       - uses: actions/checkout@v3
@@ -23,11 +23,15 @@ jobs:
       - name: Setup vcpkg
         run: .\vcpkg\bootstrap-vcpkg
       - name: Setup nuget
-        run: nuget sources add -source ${{ secrets.NUGET_REPO_URL }} -name Kalak
-      - name: Test
-        run: .\vcpkg\vcpkg install --triplet x64-windows-static --debug
+        run: >
+          nuget sources add
+          -source ${{ secrets.NUGET_REPO_URL }}
+          -name Kalak
+          -storepasswordincleartext
+          -username ${{ secrets.NUGET_REPO_USER }}
+          -password ${{ secrets.NUGET_REPO_PASS }}
       - run: mkdir build
       - name: CMake
         run: cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
       - name: Build
-        run: cmake --build .\build\ --config Release
+        run: cmake --build ./build --config Release
