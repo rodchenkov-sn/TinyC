@@ -17,6 +17,10 @@ jobs:
       VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,readwrite;nugettimeout,3600'
       VCPKG_USE_NUGET_CACHE: 1
     steps:
+      - uses: easimon/maximize-build-space@master
+        with:
+          remove-android: true
+          remove-haskell: true 
       - uses: actions/checkout@v3
         with:
           submodules: recursive
