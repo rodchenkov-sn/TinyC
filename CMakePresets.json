@@ -1,0 +1,80 @@
+{
+    "version": 3,
+    "configurePresets": [
+        {
+            "name": "x64-win-static-triplet-mixin",
+            "hidden": true,
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
+            }
+        },
+        {
+            "name": "x64-win-static-rel-triplet-mixin",
+            "hidden": true,
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-rel",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/config/triplets"
+            }
+        },
+
+        {
+            "name": "x64-win-base",
+            "hidden": true,
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Visual Studio 17"
+        },
+
+        {
+            "name": "x64-win",
+            "inherits": [
+                "x64-win-base",
+                "x64-win-static-triplet-mixin"
+            ]
+        },
+        {
+            "name": "x64-win-rel-only",
+            "inherits": [
+                "x64-win-base",
+                "x64-win-static-rel-triplet-mixin"
+            ]
+        }
+    ],
+
+    "buildPresets": [
+        {
+            "name": "dbg-base",
+            "hidden": true,
+            "configuration": "Debug"
+        },
+        {
+            "name": "rel-base",
+            "hidden": true,
+            "configuration": "Release"
+        },
+
+        {
+            "name": "conf-x64-win-mixin",
+            "hidden": true,
+            "configurePreset": "x64-win"
+        },
+        {
+            "name": "conf-x64-win-rel-only-mixin",
+            "hidden": true,
+            "configurePreset": "x64-win-rel-only"
+        },
+
+        {
+            "name": "dbg",
+            "inherits": [ "dbg-base", "conf-x64-win-mixin" ]
+        },
+        {
+            "name": "rel",
+            "inherits": [ "rel-base", "conf-x64-win-mixin" ]
+        },
+        {
+            "name": "rel-only",
+            "inherits": [ "rel-base", "conf-x64-win-rel-only-mixin" ]
+        }
+    ]
+}

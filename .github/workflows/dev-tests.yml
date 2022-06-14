@@ -32,8 +32,6 @@ jobs:
           -password ${{ secrets.NUGET_REPO_PASS }}
       - run: mkdir build
       - name: CMake
-        run: >
-          cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
-          -DVCPKG_TARGET_TRIPLET=x64-windows-static-rel "-DVCPKG_OVERLAY_TRIPLETS=$(pwd)/config/triplets"
+        run: cmake --profile=x64-win-rel-only
       - name: Build
-        run: cmake --build ./build --config Release
+        run: cmake --build --preset rel-only
