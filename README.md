@@ -5,6 +5,7 @@ Requirements:
 * pkg-config, curl, zip, unzip, tar for Debian/Ubuntu
 
 **Warning: vcpkg install step in highly space-time-consuming**
+**Note: use triplet with static CRT and lib linkage**
 
 ```sh
 $ git submodule update --init

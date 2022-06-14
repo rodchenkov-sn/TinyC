@@ -1,7 +1,3 @@
-if(WIN32)
-        set(VCPKG_TARGET_TRIPLET "x64-windows-static")
-endif()
-
 cmake_minimum_required(VERSION 3.18)
 
 project(TinyC)
@@ -82,7 +78,6 @@ target_link_libraries(
         spdlog::spdlog
         argparse::argparse
 )
-
 
 if(WIN32)
         add_compile_definitions(NOGDI)
