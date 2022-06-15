@@ -7,21 +7,14 @@ Requirements:
 
 :warning: **vcpkg install step in highly space-time-consuming**
 
- :exclamation: **use triplet with static CRT and lib linkage**
-
-### Linux
 ```sh
+# download vcpkg submodule
 git submodule update --init
-vcpkg/bootstrap-vcpkg.sh
-mkdir build
-cmake -S . -B ./build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake"
-cmake --build ./build
-```
-### Windows
-```powershell
-git submodule update --init
-vcpkg\bootstrap-vcpkg.bat
-mkdir build
-cmake -S . -B .\build "-DCMAKE_TOOLCHAIN_FILE=$(pwd)/vcpkg/scripts/buildsystems/vcpkg.cmake" "-DVCPKG_TARGET_TRIPLET=x64-windows-static"
-cmake --build .\build
+# init vcpkg
+vcpkg/bootstrap-vcpkg
+# update CMakePresets.json
+python config/presets/generate.py
+# cmake & build
+cmake --preset x64-win-vs2022-rel
+cmake --build --preset x64-win-vs2022-rel
 ```

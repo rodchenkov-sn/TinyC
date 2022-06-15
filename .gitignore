@@ -2,3 +2,4 @@
 .idea
 .antlr
 *.ll
+__pycache__

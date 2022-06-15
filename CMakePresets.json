@@ -2,79 +2,70 @@
     "version": 3,
     "configurePresets": [
         {
-            "name": "x64-win-static-triplet-mixin",
-            "hidden": true,
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static"
-            }
-        },
-        {
-            "name": "x64-win-static-rel-triplet-mixin",
-            "hidden": true,
-            "cacheVariables": {
-                "VCPKG_TARGET_TRIPLET": "x64-windows-static-rel",
-                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/config/triplets"
-            }
-        },
-
-        {
-            "name": "x64-win-base",
-            "hidden": true,
+            "name": "x64-win-vs2022-dbg",
             "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
             "binaryDir": "${sourceDir}/build",
-            "generator": "Visual Studio 17"
-        },
-
-        {
-            "name": "x64-win",
-            "inherits": [
-                "x64-win-base",
-                "x64-win-static-triplet-mixin"
-            ]
+            "generator": "Visual Studio 17",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/config/triplets",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug"
+            }
         },
         {
-            "name": "x64-win-rel-only",
-            "inherits": [
-                "x64-win-base",
-                "x64-win-static-rel-triplet-mixin"
-            ]
+            "name": "x64-win-vs2022-rel",
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Visual Studio 17",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/config/triplets",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+            }
+        },
+        {
+            "name": "x64-win-min-vs2022-dbg",
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Visual Studio 17",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-rel",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/config/triplets",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+            }
+        },
+        {
+            "name": "x64-win-min-vs2022-rel",
+            "toolchainFile": "${sourceDir}/vcpkg/scripts/buildsystems/vcpkg.cmake",
+            "binaryDir": "${sourceDir}/build",
+            "generator": "Visual Studio 17",
+            "cacheVariables": {
+                "VCPKG_TARGET_TRIPLET": "x64-windows-static-rel",
+                "VCPKG_OVERLAY_TRIPLETS": "${sourceDir}/config/triplets",
+                "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreaded"
+            }
         }
     ],
-
     "buildPresets": [
         {
-            "name": "dbg-base",
-            "hidden": true,
-            "configuration": "Debug"
+            "name": "x64-win-vs2022-dbg",
+            "configuration": "Debug",
+            "configurePreset": "x64-win-vs2022-dbg"
         },
         {
-            "name": "rel-base",
-            "hidden": true,
-            "configuration": "Release"
-        },
-
-        {
-            "name": "conf-x64-win-mixin",
-            "hidden": true,
-            "configurePreset": "x64-win"
+            "name": "x64-win-vs2022-rel",
+            "configuration": "Release",
+            "configurePreset": "x64-win-vs2022-rel"
         },
         {
-            "name": "conf-x64-win-rel-only-mixin",
-            "hidden": true,
-            "configurePreset": "x64-win-rel-only"
-        },
-
-        {
-            "name": "dbg",
-            "inherits": [ "dbg-base", "conf-x64-win-mixin" ]
+            "name": "x64-win-min-vs2022-dbg",
+            "configuration": "Debug",
+            "configurePreset": "x64-win-min-vs2022-dbg"
         },
         {
-            "name": "rel",
-            "inherits": [ "rel-base", "conf-x64-win-mixin" ]
-        },
-        {
-            "name": "rel-only",
-            "inherits": [ "rel-base", "conf-x64-win-rel-only-mixin" ]
+            "name": "x64-win-min-vs2022-rel",
+            "configuration": "Release",
+            "configurePreset": "x64-win-min-vs2022-rel"
         }
     ]
 }

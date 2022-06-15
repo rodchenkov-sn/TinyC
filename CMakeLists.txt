@@ -82,6 +82,4 @@ target_link_libraries(
 if(WIN32)
         add_compile_definitions(NOGDI)
         add_compile_definitions(NOMINMAX)
-
-        set_property(TARGET tcc PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
