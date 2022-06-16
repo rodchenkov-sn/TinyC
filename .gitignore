@@ -3,3 +3,4 @@
 .antlr
 *.ll
 __pycache__
+CMakePresets.json
