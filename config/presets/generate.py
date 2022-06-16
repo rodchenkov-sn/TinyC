@@ -5,7 +5,7 @@ import re
 from typing import List, Iterable
 
 from presets import AllowedCombination, Configuration
-from CMakePresets import WIN_COMBINATIONS
+from CMakePresets import ALL_COMBINATIONS
 
 
 def genarate(combinations: List[AllowedCombination]) -> Iterable[Configuration]:
@@ -32,7 +32,7 @@ def main():
         "buildPresets": []
     }
     print("Generated presets:")
-    for conf in genarate([WIN_COMBINATIONS]):
+    for conf in genarate(ALL_COMBINATIONS):
         print(conf.name)
         cp, bp = conf.serialize()
         structure["configurePresets"].append(cp)

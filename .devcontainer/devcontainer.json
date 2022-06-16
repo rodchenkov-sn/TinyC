@@ -1,0 +1,26 @@
+{
+	"name": "C++",
+	"build": {
+		"dockerfile": "Dockerfile",
+		"args": { "VARIANT": "ubuntu-22.04" }
+	},
+	"runArgs": ["--cap-add=SYS_PTRACE", "--security-opt", "seccomp=unconfined"],
+
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"ms-vscode.cpptools",
+				"ms-vscode.cmake-tools"
+			]
+		}
+	},
+
+	"postStartCommand": "git submodule update --init && vcpkg/bootstrap-vcpkg.sh",
+
+	"remoteUser": "vscode",
+	"features": {
+		"git": "latest",
+		"python": "latest",
+		"java": "latest"
+	}
+}

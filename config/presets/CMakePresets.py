@@ -1,4 +1,9 @@
-from presets import *
+from presets import AllowedCombination, Triplet, Generator, BuildPreset, Variable
+
+DEFAULT_BUILD_PRESETS = [
+    BuildPreset("dbg", "Debug"),
+    BuildPreset("rel", "Release")
+]
 
 WIN_COMBINATIONS = AllowedCombination(
     [
@@ -8,10 +13,7 @@ WIN_COMBINATIONS = AllowedCombination(
     [
         Generator("vs2022", "Visual Studio 17")
     ],
-    [
-        BuildPreset("dbg", "Debug"),
-        BuildPreset("rel", "Release")
-    ],
+    DEFAULT_BUILD_PRESETS,
     [
         Variable(
             "CMAKE_MSVC_RUNTIME_LIBRARY",
@@ -36,3 +38,18 @@ WIN_COMBINATIONS = AllowedCombination(
         )
     ]
 )
+
+
+LINUX_COMBINATIONS = AllowedCombination(
+    [
+        Triplet("x64-linux", "x64-linux")
+    ],
+    [
+        Generator("gcc", "Unix Makefiles")
+    ],
+    DEFAULT_BUILD_PRESETS,
+    []
+)
+
+
+ALL_COMBINATIONS = [WIN_COMBINATIONS, LINUX_COMBINATIONS]
