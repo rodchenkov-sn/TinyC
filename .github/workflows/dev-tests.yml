@@ -38,9 +38,9 @@ jobs:
         with:
           submodules: recursive
       - name: Generate presets
-        run: python .\config\presets\generate.py
+        run: python ./config/presets/generate.py
       - name: Setup vcpkg
-        run: .\vcpkg\bootstrap-vcpkg
+        run: ./vcpkg/bootstrap-vcpkg
       - name: Setup nuget
         run: >
           ${{ matrix.mono }} ${{ matrix.nuget }} sources add
