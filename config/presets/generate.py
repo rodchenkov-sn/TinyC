@@ -22,7 +22,8 @@ def genarate(combinations: List[AllowedCombination]) -> Iterable[Configuration]:
                 triplet.triplet,
                 generator.generator,
                 variables,
-                build.configuration
+                build.configuration,
+                build.target
             )
 
 def main():

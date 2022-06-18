@@ -1,8 +1,8 @@
 from presets import AllowedCombination, Triplet, Generator, BuildPreset, Variable
 
 DEFAULT_BUILD_PRESETS = [
-    BuildPreset("dbg", "Debug"),
-    BuildPreset("rel", "Release")
+    BuildPreset("dbg", "Debug", "tcc"),
+    BuildPreset("rel", "Release", "tcc")
 ]
 
 WIN_COMBINATIONS = AllowedCombination(
@@ -42,7 +42,8 @@ WIN_COMBINATIONS = AllowedCombination(
 
 LINUX_COMBINATIONS = AllowedCombination(
     [
-        Triplet("x64-linux", "x64-linux")
+        Triplet("x64-linux", "x64-linux"),
+        Triplet("x64-linux-min", "x64-linux-rel")
     ],
     [
         Generator("gcc", "Unix Makefiles")

@@ -11,11 +11,28 @@ on:
 jobs:
 
   build:
+
     name: Build
-    runs-on: windows-latest
+
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            mono: ''
+            nuget: 'nuget'
+            preset: 'x64-win-min-vs2022-rel'
+          - os: ubuntu-latest
+            mono: 'mono'
+            nuget: '`./vcpkg/vcpkg fetch nuget | tail -n 1`'
+            preset: 'x64-linux-min-gcc-rel'
+
+    runs-on: ${{ matrix.os }}
+    
     env:
       VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,readwrite;nugettimeout,3600'
       VCPKG_USE_NUGET_CACHE: 1
+    
     steps:
       - uses: actions/checkout@v3
         with:
@@ -26,7 +43,7 @@ jobs:
         run: .\vcpkg\bootstrap-vcpkg
       - name: Setup nuget
         run: >
-          nuget sources add
+          ${{ matrix.mono }} ${{ matrix.nuget }} sources add
           -source ${{ secrets.NUGET_REPO_URL }}
           -name Kalak
           -storepasswordincleartext
@@ -34,6 +51,6 @@ jobs:
           -password ${{ secrets.NUGET_REPO_PASS }}
       - run: mkdir build
       - name: CMake
-        run: cmake --preset x64-win-min-vs2022-rel
+        run: cmake --preset ${{ matrix.preset }}
       - name: Build
-        run: cmake --build --preset x64-win-min-vs2022-rel
+        run: cmake --build --preset ${{ matrix.preset }}

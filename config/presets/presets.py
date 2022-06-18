@@ -27,6 +27,7 @@ class Variable:
 class BuildPreset:
     name: str
     configuration: str
+    target: str
 
 
 @dataclass
@@ -48,6 +49,7 @@ class Configuration:
 
     # buildPresets entity
     build_config: str
+    target: str
 
     def serialize(self) -> Tuple[Dict, Dict]:
         cp = {
@@ -65,6 +67,7 @@ class Configuration:
         bc = {
             "name": self.name,
             "configuration": self.build_config,
-            "configurePreset": self.name
+            "configurePreset": self.name,
+            "targets": self.target
         }
         return cp, bc
