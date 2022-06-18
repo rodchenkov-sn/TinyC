@@ -22,10 +22,12 @@ jobs:
             mono: ''
             nuget: 'nuget'
             preset: 'x64-win-min-vs2022-rel'
+            bootstrap: './vcpkg/bootstrap-vcpkg.bat'
           - os: ubuntu-latest
             mono: 'mono'
             nuget: '`./vcpkg/vcpkg fetch nuget | tail -n 1`'
             preset: 'x64-linux-min-gcc-rel'
+            bootstrap: './vcpkg/bootstrap-vcpkg.sh'
 
     runs-on: ${{ matrix.os }}
     
@@ -40,7 +42,7 @@ jobs:
       - name: Generate presets
         run: python ./config/presets/generate.py
       - name: Setup vcpkg
-        run: ./vcpkg/bootstrap-vcpkg
+        run: ${{ matrix.bootstrap }}
       - name: Setup nuget
         run: >
           ${{ matrix.mono }} ${{ matrix.nuget }} sources add
