@@ -1,10 +1,6 @@
 #ifndef TINYC_FUNCTIONLIB_H
 #define TINYC_FUNCTIONLIB_H
 
-#include <stdexcept>
-#include <string>
-#include <unordered_map>
-
 #include "Function.h"
 
 class FunctionLibrary {

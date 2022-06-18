@@ -5,12 +5,12 @@ translationUnit
     ;
 
 entity
-    :   function
-    |   struct
+    :   functionDef
+    |   structDef
     ;
 
 
-struct
+structDef
     :   STRUCT IDENTIFIER L_BRACE structField+ R_BRACE SEMICOLON
     ;
 
@@ -20,7 +20,7 @@ structField
     ;
 
 
-function
+functionDef
     :   type functionName L_PARAN parameters? R_PARAN statements
     ;
 

@@ -1,73 +1,58 @@
 name: Dev tests
+
 on:
   push:
-    branches-ignore:
-      - master
+    branches:
+      - dev
+  pull_request:
+    branches:
+      - dev
+
 jobs:
 
-  list-examples:
-    runs-on: self-hosted
-    outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
-    steps:
-      - uses: actions/checkout@v2
-      - id: set-matrix
-        run: echo "::set-output name=matrix::$(find examples -iname "*.c" -exec sh -c 'printf "%s\n" "${0%.*}"' {} ';' | jq -R -s -c 'split("\n")[:-1]')"
-
   build:
-    name: Build
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v2
-      - run: mkdir build
-      - name: Cmake
-        working-directory: ./build
-        run: cmake ..
-      - name: Build
-        working-directory: ./build
-        run: make
-      - uses: actions/upload-artifact@v2
-        with:
-          name: tcc-exe
-          path: build/tcc
-          retention-days: 1
 
-  test:
-    needs: [list-examples, build]
-    name: Test
-    runs-on: self-hosted
+    name: Build
+
     strategy:
       matrix:
-        example: ${{ fromJson(needs.list-examples.outputs.matrix) }}
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/download-artifact@v2
-        with:
-          name: tcc-exe
-      - run: chmod +x ./tcc
-      - name: Translate to IR
-        run: ./tcc '${{ matrix.example }}.c'
-      - name: Translate to ASM
-        run: llc -opaque-pointers '${{ matrix.example }}.ll'
-      - name: Compile
-        run: gcc '${{ matrix.example }}.s' -o ${{ matrix.example }}
-      - name: Run example
-        run: ${{ matrix.example }}
+        os: [windows-latest, ubuntu-latest]
+        include:
+          - os: windows-latest
+            mono: ''
+            nuget: 'nuget'
+            preset: 'x64-win-min-vs2022-rel'
+            bootstrap: './vcpkg/bootstrap-vcpkg.bat'
+          - os: ubuntu-latest
+            mono: 'mono'
+            nuget: '`./vcpkg/vcpkg fetch nuget | tail -n 1`'
+            preset: 'x64-linux-min-gcc-rel'
+            bootstrap: './vcpkg/bootstrap-vcpkg.sh'
 
-  format:
-    needs: test
-    name: Format
-    runs-on: self-hosted
+    runs-on: ${{ matrix.os }}
+    
+    env:
+      VCPKG_BINARY_SOURCES: 'clear;nuget,Kalak,readwrite;nugettimeout,3600'
+      VCPKG_USE_NUGET_CACHE: 1
+    
     steps:
-      - uses: actions/checkout@v2
-      - uses: DoozyX/clang-format-lint-action@v0.13
+      - uses: actions/checkout@v3
         with:
-          source: './src'
-          clangFormatVersion: 13
-          inplace: True
-      - uses: EndBug/add-and-commit@v9
-        with:
-          add: 'src'
-          default_author: github_actions
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          submodules: recursive
+      - name: Generate presets
+        run: python ./config/presets/generate.py
+      - name: Setup vcpkg
+        run: ${{ matrix.bootstrap }}
+      - name: Setup nuget
+        run: >
+          ${{ matrix.mono }} ${{ matrix.nuget }} sources add
+          -source ${{ secrets.NUGET_REPO_URL }}
+          -name Kalak
+          -storepasswordincleartext
+          -username ${{ secrets.NUGET_REPO_USER }}
+          -password ${{ secrets.NUGET_REPO_PASS }}
+      - run: mkdir build
+      - name: CMake
+        run: cmake --preset ${{ matrix.preset }}
+      - name: Build
+        run: cmake --build --preset ${{ matrix.preset }}

@@ -1,16 +1,6 @@
 #ifndef TINYC_IREMITTER_H
 #define TINYC_IREMITTER_H
 
-#include <deque>
-#include <sstream>
-#include <stack>
-#include <unordered_map>
-#include <vector>
-
-#include <llvm/IR/IRBuilder.h>
-#include <llvm/IR/LegacyPassManager.h>
-#include <llvm/IR/Module.h>
-
 #include "asg/AsgNode.h"
 #include "asg/AsgVisitor.h"
 #include "pipeline/PipelineStage.h"

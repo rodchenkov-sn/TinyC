@@ -1,8 +1,6 @@
 #ifndef TINYC_FILEWRITER_H
 #define TINYC_FILEWRITER_H
 
-#include <string>
-
 #include "pipeline/PipelineStage.h"
 
 class FileWriter : public PipeOutputBase {

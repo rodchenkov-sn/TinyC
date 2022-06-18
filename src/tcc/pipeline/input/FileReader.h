@@ -1,8 +1,6 @@
 #ifndef TINYC_ASTGENERATOR_H
 #define TINYC_ASTGENERATOR_H
 
-#include <string>
-
 #include "pipeline/PipelineStage.h"
 #include "TinyCLexer.h"
 #include "TinyCParser.h"

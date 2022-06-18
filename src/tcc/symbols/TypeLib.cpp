@@ -1,9 +1,5 @@
 #include "TypeLib.h"
 
-#include <regex>
-
-#include <llvm/IR/DerivedTypes.h>
-
 static TypeLibrary* instance = nullptr;
 
 Type::Id TypeLibrary::get(const std::string& name) const

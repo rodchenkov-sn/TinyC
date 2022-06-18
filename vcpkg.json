@@ -1,0 +1,15 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg/master/scripts/vcpkg.schema.json",
+    "name": "tiny-c",
+    "version": "1.0.0",
+    "dependencies": [
+        "spdlog",
+        "antlr4",
+        "argparse",
+        {
+            "name": "llvm",
+            "default-features": false
+        }
+    ],
+    "builtin-baseline": "38bb87c5571555f1a4f64cb4ed9d2be0017f9fc1"
+}

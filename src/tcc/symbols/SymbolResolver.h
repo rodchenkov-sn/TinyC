@@ -1,13 +1,6 @@
 #ifndef TINYC_SYMBOLRESOLVER_H
 #define TINYC_SYMBOLRESOLVER_H
 
-#include <any>
-#include <sstream>
-#include <stack>
-#include <string>
-#include <unordered_map>
-#include <vector>
-
 #include "asg/AsgNode.h"
 #include "asg/AsgVisitor.h"
 #include "pipeline/PipelineStage.h"

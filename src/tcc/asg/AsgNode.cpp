@@ -16,7 +16,7 @@ void AsgStatementList::updateChild(AsgNode* from, AsgNode* to)
 {
     for (auto& s : statements) {
         if (s.get() == from) {
-            UNUSED(s.release());
+            TC_UNUSED(s.release());
             s.reset(to);
         }
     }
@@ -44,7 +44,7 @@ std::any AsgFunctionDefinition::accept(AsgVisitorBase* visitor)
 void AsgFunctionDefinition::updateChild(AsgNode* from, AsgNode* to)
 {
     if (body.get() == from) {
-        UNUSED(body.release());
+        TC_UNUSED(body.release());
         body.reset(to);
     }
 }
@@ -57,7 +57,7 @@ std::any AsgVariableDefinition::accept(AsgVisitorBase* visitor)
 void AsgVariableDefinition::updateChild(AsgNode* from, AsgNode* to)
 {
     if (value.get() == from) {
-        UNUSED(value.release());
+        TC_UNUSED(value.release());
         value.reset(to);
     }
 }
@@ -70,7 +70,7 @@ std::any AsgReturn::accept(AsgVisitorBase* visitor)
 void AsgReturn::updateChild(AsgNode* from, AsgNode* to)
 {
     if (value.get() == from) {
-        UNUSED(value.release());
+        TC_UNUSED(value.release());
         value.reset(to);
     }
 }
@@ -83,10 +83,10 @@ std::any AsgAssignment::accept(AsgVisitorBase* visitor)
 void AsgAssignment::updateChild(AsgNode* from, AsgNode* to)
 {
     if (assignable.get() == from) {
-        UNUSED(assignable.release());
+        TC_UNUSED(assignable.release());
         assignable.reset(to);
     } else if (value.get() == from) {
-        UNUSED(value.release());
+        TC_UNUSED(value.release());
         value.reset(to);
     }
 }
@@ -99,13 +99,13 @@ std::any AsgConditional::accept(AsgVisitorBase* visitor)
 void AsgConditional::updateChild(AsgNode* from, AsgNode* to)
 {
     if (condition.get() == from) {
-        UNUSED(condition.release());
+        TC_UNUSED(condition.release());
         condition.reset(to);
     } else if (thenNode.get() == from) {
-        UNUSED(thenNode.release());
+        TC_UNUSED(thenNode.release());
         thenNode.reset(to);
     } else if (elseNode.get() == from) {
-        UNUSED(elseNode.release());
+        TC_UNUSED(elseNode.release());
         elseNode.reset(to);
     }
 }
@@ -118,10 +118,10 @@ std::any AsgLoop::accept(AsgVisitorBase* visitor)
 void AsgLoop::updateChild(AsgNode* from, AsgNode* to)
 {
     if (condition.get() == from) {
-        UNUSED(condition.release());
+        TC_UNUSED(condition.release());
         condition.reset(to);
     } else if (body.get() == from) {
-        UNUSED(body.release());
+        TC_UNUSED(body.release());
         body.reset(to);
     }
 }
@@ -134,10 +134,10 @@ std::any AsgComp::accept(AsgVisitorBase* visitor)
 void AsgComp::updateChild(AsgNode* from, AsgNode* to)
 {
     if (lhs.get() == from) {
-        UNUSED(lhs.release());
+        TC_UNUSED(lhs.release());
         lhs.reset(to);
     } else if (rhs.get() == from) {
-        UNUSED(rhs.release());
+        TC_UNUSED(rhs.release());
         rhs.reset(to);
     }
 }
@@ -151,7 +151,7 @@ void AsgAddSub::updateChild(AsgNode* from, AsgNode* to)
 {
     for (auto& s : subexpressions) {
         if (s.expression.get() == from) {
-            UNUSED(s.expression.release());
+            TC_UNUSED(s.expression.release());
             s.expression.reset(to);
         }
     }
@@ -166,7 +166,7 @@ void AsgMulDiv::updateChild(AsgNode* from, AsgNode* to)
 {
     for (auto& s : subexpressions) {
         if (s.expression.get() == from) {
-            UNUSED(s.expression.release());
+            TC_UNUSED(s.expression.release());
             s.expression.reset(to);
         }
     }
@@ -180,7 +180,7 @@ std::any AsgFieldAccess::accept(AsgVisitorBase* visitor)
 void AsgFieldAccess::updateChild(AsgNode* from, AsgNode* to)
 {
     if (accessed.get() == from) {
-        UNUSED(accessed.release());
+        TC_UNUSED(accessed.release());
         accessed.reset(to);
     }
 }
@@ -193,12 +193,12 @@ std::any AsgIndexing::accept(AsgVisitorBase* visitor)
 void AsgIndexing::updateChild(AsgNode* from, AsgNode* to)
 {
     if (indexed.get() == from) {
-        UNUSED(indexed.release());
+        TC_UNUSED(indexed.release());
         indexed.reset(to);
     } else {
         for (auto& i : indexes) {
             if (i.get() == from) {
-                UNUSED(i.release());
+                TC_UNUSED(i.release());
                 i.reset(to);
             }
         }
@@ -213,7 +213,7 @@ std::any AsgOpDeref::accept(AsgVisitorBase* visitor)
 void AsgOpDeref::updateChild(AsgNode* from, AsgNode* to)
 {
     if (expression.get() == from) {
-        UNUSED(expression.release());
+        TC_UNUSED(expression.release());
         expression.reset(to);
     }
 }
@@ -226,7 +226,7 @@ std::any AsgOpRef::accept(AsgVisitorBase* visitor)
 void AsgOpRef::updateChild(AsgNode* from, AsgNode* to)
 {
     if (value.get() == from) {
-        UNUSED(value.release());
+        TC_UNUSED(value.release());
         value.reset(to);
     }
 }
@@ -249,7 +249,7 @@ void AsgCall::updateChild(AsgNode* from, AsgNode* to)
 {
     for (auto& a : arguments) {
         if (a.get() == from) {
-            UNUSED(a.release());
+            TC_UNUSED(a.release());
             a.reset(to);
         }
     }

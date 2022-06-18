@@ -1,10 +1,6 @@
-#include <iostream>
-
-#include <argparse/argparse.hpp>
-#include <spdlog/spdlog.h>
-
 #include "ast/AstVisitor.h"
 #include "ir/IrEmitter.h"
+#include "os/OsInit.h"
 #include "pipeline/input/FileReader.h"
 #include "pipeline/output/FileWriter.h"
 #include "pipeline/output/TerminalWriter.h"
@@ -35,8 +31,8 @@ int main(int argc, char** argv)
         .default_value(false)
         .implicit_value(true);
 
-    program.add_argument("-v", "--verbose")
-        .help("print additional info during compilation")
+    program.add_argument("--dump")
+        .help("create crash dump on failure")
         .default_value(false)
         .implicit_value(true);
 
@@ -48,13 +44,8 @@ int main(int argc, char** argv)
         return EXIT_FAILURE;
     }
 
-    spdlog::set_pattern("%^[%l]%$ %v");
-
-    if (program.get<bool>("-v")) {
-        spdlog::set_level(spdlog::level::info);
-    } else {
-        spdlog::set_level(spdlog::level::warn);
-    }
+    osInit(program.get<bool>("--dump"));
+    logInit();
 
     auto inputFileName = program.get<std::string>("input");
 
@@ -96,11 +87,11 @@ int main(int argc, char** argv)
     }
 
     if (!pipeline.run()) {
-        spdlog::error("compilation failed due to errors");
+        TC_LOG_ERROR("compilation failed due to errors");
         return EXIT_FAILURE;
     }
     if (!program.get<bool>("-p")) {
-        spdlog::info("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
+        TC_LOG_INFO("compilation finished -> {}", outputName.empty() ? "stdout" : outputName);
     }
     return EXIT_SUCCESS;
 }

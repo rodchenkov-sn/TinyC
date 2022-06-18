@@ -9,28 +9,28 @@ class AstVisitor : public TinyCBaseVisitor,
 public:
     std::any modify(std::any data) override;
 
-    std::any visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx) override;
-    std::any visitStruct(TinyCParser::StructContext* ctx) override;
-    std::any visitFunction(TinyCParser::FunctionContext* ctx) override;
-    std::any visitStatements(TinyCParser::StatementsContext* ctx) override;
-    std::any visitStatement(TinyCParser::StatementContext* ctx) override;
-    std::any visitIfStatement(TinyCParser::IfStatementContext* ctx) override;
-    std::any visitVariableDecl(TinyCParser::VariableDeclContext* ctx) override;
-    std::any visitAssignment(TinyCParser::AssignmentContext* ctx) override;
-    std::any visitReturnStatement(TinyCParser::ReturnStatementContext* ctx) override;
-    std::any visitWhileStatement(TinyCParser::WhileStatementContext* ctx) override;
-    std::any visitForStatement(TinyCParser::ForStatementContext* ctx) override;
+    antlrcpp::Any visitTranslationUnit(TinyCParser::TranslationUnitContext* ctx) override;
+    antlrcpp::Any visitStructDef(TinyCParser::StructDefContext* ctx) override;
+    antlrcpp::Any visitFunctionDef(TinyCParser::FunctionDefContext* ctx) override;
+    antlrcpp::Any visitStatements(TinyCParser::StatementsContext* ctx) override;
+    antlrcpp::Any visitStatement(TinyCParser::StatementContext* ctx) override;
+    antlrcpp::Any visitIfStatement(TinyCParser::IfStatementContext* ctx) override;
+    antlrcpp::Any visitVariableDecl(TinyCParser::VariableDeclContext* ctx) override;
+    antlrcpp::Any visitAssignment(TinyCParser::AssignmentContext* ctx) override;
+    antlrcpp::Any visitReturnStatement(TinyCParser::ReturnStatementContext* ctx) override;
+    antlrcpp::Any visitWhileStatement(TinyCParser::WhileStatementContext* ctx) override;
+    antlrcpp::Any visitForStatement(TinyCParser::ForStatementContext* ctx) override;
 
-    std::any visitCompExpression(TinyCParser::CompExpressionContext* ctx) override;
-    std::any visitAddSubExpr(TinyCParser::AddSubExprContext* ctx) override;
-    std::any visitMulDivExpr(TinyCParser::MulDivExprContext* ctx) override;
-    std::any visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx) override;
-    std::any visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx) override;
-    std::any visitFieldAccess(TinyCParser::FieldAccessContext* ctx) override;
-    std::any visitCallExpr(TinyCParser::CallExprContext* ctx) override;
-    std::any visitLiteral(TinyCParser::LiteralContext* ctx) override;
-    std::any visitValueReference(TinyCParser::ValueReferenceContext* ctx) override;
-    std::any visitVariableName(TinyCParser::VariableNameContext* ctx) override;
+    antlrcpp::Any visitCompExpression(TinyCParser::CompExpressionContext* ctx) override;
+    antlrcpp::Any visitAddSubExpr(TinyCParser::AddSubExprContext* ctx) override;
+    antlrcpp::Any visitMulDivExpr(TinyCParser::MulDivExprContext* ctx) override;
+    antlrcpp::Any visitIndexedOperand(TinyCParser::IndexedOperandContext* ctx) override;
+    antlrcpp::Any visitOperandDereference(TinyCParser::OperandDereferenceContext* ctx) override;
+    antlrcpp::Any visitFieldAccess(TinyCParser::FieldAccessContext* ctx) override;
+    antlrcpp::Any visitCallExpr(TinyCParser::CallExprContext* ctx) override;
+    antlrcpp::Any visitLiteral(TinyCParser::LiteralContext* ctx) override;
+    antlrcpp::Any visitValueReference(TinyCParser::ValueReferenceContext* ctx) override;
+    antlrcpp::Any visitVariableName(TinyCParser::VariableNameContext* ctx) override;
 };
 
 #endif

@@ -1,9 +1,6 @@
 #ifndef TINYC_TCTYPELIB_H
 #define TINYC_TCTYPELIB_H
 
-#include <string>
-#include <unordered_map>
-
 #include "Type.h"
 
 class TypeLibrary {

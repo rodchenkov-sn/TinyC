@@ -1,17 +1,6 @@
 #include "IrEmitter.h"
 
-#include <llvm/Analysis/CGSCCPassManager.h>
-#include <llvm/Analysis/LoopAnalysisManager.h>
-#include <llvm/IR/Instructions.h>
-#include <llvm/IR/LLVMContext.h>
-#include <llvm/IR/PassManager.h>
-#include <llvm/IR/Verifier.h>
-#include <llvm/Passes/OptimizationLevel.h>
-#include <llvm/Passes/PassBuilder.h>
-#include <spdlog/spdlog.h>
-
 #include "symbols/TypeLib.h"
-#include "utils/Defs.h"
 
 IrEmitter::IrEmitter(std::string moduleName, bool optimize)
     : module_name_(std::move(moduleName))
@@ -22,7 +11,7 @@ IrEmitter::IrEmitter(std::string moduleName, bool optimize)
 std::any IrEmitter::modify(std::any data)
 {
     if (data.type() != typeid(AsgNode*)) {
-        spdlog::critical("Unexpected data type passed to IrEmitter -- expected AsgNode*");
+        TC_LOG_CRITICAL("Unexpected data type passed to IrEmitter -- expected AsgNode*");
         return {};
     }
     auto* root = std::any_cast<AsgNode*>(data);
@@ -35,7 +24,7 @@ std::any IrEmitter::modify(std::any data)
     delete root;
 
     if (llvm::verifyModule(*module_, &llvm::errs())) {
-        spdlog::critical("invalid module was emitted by IrEmitter");
+        TC_LOG_CRITICAL("invalid module was emitted by IrEmitter");
         ok_ = false;
     }
 
@@ -113,7 +102,6 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
             param.setName(paramName + "_arg");
 
             llvm::AllocaInst* alloca = makeAlloca(paramName, param.getType());
-            alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
             builder_->CreateStore(&param, alloca);
 
             scopes_.back().insert({paramName, alloca});
@@ -136,13 +124,13 @@ std::any IrEmitter::visitFunctionDefinition(struct AsgFunctionDefinition* node)
     node->body->accept(this);
 
     if (llvm::verifyFunction(*function, &llvm::errs())) {
-        spdlog::critical("invalid function {} was emitted by IrEmitter", node->name);
+        TC_LOG_CRITICAL("invalid function {} was emitted by IrEmitter", node->name);
         ok_ = false;
     }
 
     scopes_.pop_back();
     expected_ret_.pop();
-    ASSERT(expected_ret_.empty());
+    TC_ASSERT(expected_ret_.empty());
 
     curr_function_ = nullptr;
     return {};
@@ -159,7 +147,6 @@ std::any IrEmitter::visitVariableDefinition(struct AsgVariableDefinition* node)
     if (node->value) {
         expected_ret_.push(RetType::Data);
         auto* value = std::any_cast<llvm::Value*>(node->value->accept(this));
-        alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         builder_->CreateStore(value, alloca);
         expected_ret_.pop();
     }
@@ -216,7 +203,6 @@ std::any IrEmitter::visitAssignment(struct AsgAssignment* node)
     auto valType = node->value->exprType;
     expected_ret_.pop();
 
-    assignable->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     builder_->CreateStore(value, assignable);
 
     if (expected_ret_.top() == RetType::Data) {
@@ -340,13 +326,13 @@ std::any IrEmitter::visitComp(struct AsgComp* node)
         break;
     }
 
-    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    TC_ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     return builder_->CreateIntCast(i1Val, llvm::Type::getInt32Ty(*context_), false);
 }
 
 std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 {
-    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    TC_ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     auto* last = std::any_cast<llvm::Value*>(node->subexpressions[0].expression->accept(this));
     for (auto i = 1; i < node->subexpressions.size(); i++) {
         auto* curr = std::any_cast<llvm::Value*>(node->subexpressions[i].expression->accept(this));
@@ -361,7 +347,7 @@ std::any IrEmitter::visitAddSub(struct AsgAddSub* node)
 
 std::any IrEmitter::visitMulDiv(struct AsgMulDiv* node)
 {
-    ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
+    TC_ASSERT(expected_ret_.top() == RetType::Data || expected_ret_.top() == RetType::CallParam);
     auto* last = std::any_cast<llvm::Value*>(node->subexpressions[0].expression->accept(this));
     for (auto i = 1; i < node->subexpressions.size(); i++) {
         auto* curr = std::any_cast<llvm::Value*>(node->subexpressions[i].expression->accept(this));
@@ -409,7 +395,6 @@ std::any IrEmitter::visitIndexing(struct AsgIndexing* node)
     auto* indexed = std::any_cast<llvm::Value*>(node->indexed->accept(this));
     expected_ret_.pop();
 
-    indexed->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     auto indexedType = node->indexed->exprType;
 
     if (!indexedType->as<ArrayType>()) {
@@ -498,7 +483,6 @@ std::any IrEmitter::visitOpRef(struct AsgOpRef* node)
 
     if (auto* variable = dynamic_cast<AsgVariable*>(node->value.get())) {
         val = findAlloca(variable->name);
-        val->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
     } else {
         std::cerr << "unexpected reference in " << node->function->name << "\n";
     }
@@ -512,7 +496,6 @@ std::any IrEmitter::visitVariable(struct AsgVariable* node)
         return (llvm::Value*)findAlloca(node->name);
     } else if (node->exprType->as<ArrayType>() && expected_ret_.top() == RetType::CallParam) {
         auto* alloca = findAlloca(node->name);
-        alloca->mutateType(llvm::PointerType::get(*context_, curr_function_->getAddressSpace()));
         auto* constZero = llvm::ConstantInt::getSigned(llvm::Type::getInt64Ty(*context_), 0);
         std::vector<llvm::Value*> ids;
         auto currType = node->exprType;

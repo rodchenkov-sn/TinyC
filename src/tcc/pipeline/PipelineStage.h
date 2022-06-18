@@ -1,8 +1,6 @@
 #ifndef TINYC_PIPELINESTAGE_H
 #define TINYC_PIPELINESTAGE_H
 
-#include <any>
-
 struct PipeInputBase {
     virtual ~PipeInputBase() = default;
 

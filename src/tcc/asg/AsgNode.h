@@ -1,12 +1,6 @@
 #ifndef TINYC_ASGNODE_H
 #define TINYC_ASGNODE_H
 
-#include <iostream>
-#include <memory>
-#include <optional>
-#include <string>
-#include <vector>
-
 #include "AsgVisitor.h"
 #include "symbols/Function.h"
 #include "symbols/Type.h"
